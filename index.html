@@ -578,7 +578,7 @@ dash.calc('league-table', {
     const finals = ps.filter((x) => x.state === 'final' && Number(x.proj) >= 8 && (!x.inj || x.inj === 'Questionable'));
     if (finals.length) {
       const dud = finals.reduce((a, x) => (Number(x.proj) - Number(x.pts) > Number(a.proj) - Number(a.pts) ? x : a));
-      if (Number(dud.proj) - Number(dud.pts) > 3) tile('Crime scene', dud.player + ' \u00B7 ' + dud.pts, 'projected ' + dud.proj + ', delivered that \u2014 sorry, ' + nameOf(dud.team), 'var(--color-bad)');
+      if (Number(dud.proj) - Number(dud.pts) > 3) tile('Crime scene', dud.player + ' \u00B7 ' + dud.pts, 'projected ' + dud.proj + ', delivered that. Thoughts and prayers, ' + nameOf(dud.team), 'var(--color-bad)');
     }
     // stonks / falling knife from 30-day value
     if (vv.status === 'ok' && vv.data) {
