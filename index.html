@@ -88,7 +88,14 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 .hq-moves li::marker{color:var(--hq-gold);font-weight:var(--cds-font-weight-medium)}
 .hq-m{border-radius:var(--cds-radius);padding:8px;margin:-4px;cursor:pointer}
 .hq-m .hq-lu{cursor:auto;user-select:text}
-.hq-split{grid-template-columns:2fr 3fr}
+.hq-viewas{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}
+.hq-viewas button{display:flex;align-items:center;gap:6px;font:inherit;font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:999px;padding:3px 10px 3px 4px;cursor:pointer}
+.hq-viewas button.on{color:var(--color-fg);border-color:var(--hq-gold);box-shadow:inset 0 0 0 1px var(--hq-gold);font-weight:var(--cds-font-weight-medium)}
+.hq-av{width:20px;height:20px;border-radius:50%;background:var(--cds-chart-muted);object-fit:cover;flex:none}
+.hq-av-s{width:17px;height:17px;border-radius:50%;background:var(--cds-chart-muted);object-fit:cover;vertical-align:-4px;margin-right:6px}
+.hq-teamsel{margin:8px 0 2px}
+.hq-teamsel select{font:inherit;font-size:var(--cds-font-size-caption);color:var(--color-fg);background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:8px;padding:4px 8px}
+.hq-split{grid-template-columns:5fr 6fr}
 @media (max-width:860px){.hq-split{grid-template-columns:1fr}}
 .hq-m:hover{background:color-mix(in srgb,var(--color-fg-muted) 7%,transparent)}
 .hq-m:focus-visible{outline:2px solid var(--hq-wr)}
@@ -127,7 +134,8 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 <div class="hq">
 <header id="overview">
 <h1>Pee Pee League HQ</h1>
-<p class="hq-lede">Team adamyeet (chubby wubbies) sits at <b data-draw="cell" data-source="standings" data-field="record" data-where="team=adamyeet" class="dash-skeleton">—</b> with the No. <b data-draw="cell" data-source="standings" data-field="value_rank" data-where="team=adamyeet" class="dash-skeleton">—</b> roster in the league by trade value, <b data-draw="cell" data-fmt="pct0" data-source="value-gap" class="dash-skeleton">—</b> clear of the next-best roster, and the No. <b data-draw="cell" data-source="champ-rank" class="dash-skeleton">—</b> championship odds in this dashboard's best-ball simulation.</p>
+<div class="hq-viewas" id="view-as" role="group" aria-label="View dashboard as"></div>
+<p class="hq-lede dash-skeleton" data-draw="hero-lede" data-source="standings odds">—</p>
 </header>
 <nav class="hq-nav" aria-label="Sections">
 <a href="#roster">Roster</a>
@@ -148,7 +156,8 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 
 <div class="hq-2col hq-split">
 <section id="roster" class="hq-card">
-<h2><span class="dot" style="background:var(--hq-te)"></span>adamyeet roster by value</h2>
+<h2><span class="dot" style="background:var(--hq-te)"></span>Rosters by value</h2>
+<div class="hq-teamsel"><select id="roster-team" aria-label="Team"></select></div>
 <div class="hq-filter" data-for="roster-body" role="group" aria-label="Filter by position">
 <button type="button" class="f on" data-pos="">All</button>
 <button type="button" class="f" data-pos="QB">QB</button>
@@ -157,13 +166,13 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 <button type="button" class="f" data-pos="TE">TE</button>
 </div>
 <div class="hq-tablewrap">
-<table data-source="roster" data-row-key="player">
+<table data-source="matchdetail values" data-row-key="player">
 <thead><tr>
 <th data-field="player">Player</th>
 <th data-field="pos">Pos</th>
 <th class="r" data-field="pos_rank">Rank</th>
 <th class="r" data-field="value">Value</th>
-<th class="r" data-field="trend_30d">30-day</th>
+<th class="r" data-field="trend_30d">30d</th>
 </tr></thead>
 <tbody data-draw="roster-body" class="dash-skeleton"></tbody>
 </table>
@@ -208,7 +217,7 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 <div class="hq-2col">
 <section id="moves" class="hq-card">
 <h2><span class="dot" style="background:var(--hq-gold)"></span>Moves to make</h2>
-<p class="hq-sub">Written for Week 12. Rewritten at each data refresh; figures are FantasyCalc trade values and update live from the data.</p>
+<p class="hq-sub">adamyeet’s plan, written for Week 12. Rewritten at each data refresh; figures are FantasyCalc trade values and update live from the data.</p>
 <ol class="hq-moves">
 <li><b>Claim A.J. Brown.</b> At <b data-draw="cell" data-fmt="int" data-source="waivers" data-field="value" data-where="player=A.J. Brown" class="dash-skeleton">—</b> he is the most valuable free agent in the league by a wide margin and slots in as the WR3 behind St. Brown and Golden. Make room by dropping Chig Okonkwo (<b data-draw="cell" data-fmt="int" data-source="roster" data-field="value" data-where="player=Chig Okonkwo" class="dash-skeleton">—</b>, third tight end) or Deshaun Watson (<b data-draw="cell" data-fmt="int" data-source="roster" data-field="value" data-where="player=Deshaun Watson" class="dash-skeleton">—</b>, third quarterback).</li>
 <li><b>Add Woody Marks as running back cover.</b> He is the top free-agent back at <b data-draw="cell" data-fmt="int" data-source="waivers" data-field="value" data-where="player=Woody Marks" class="dash-skeleton">—</b>, and Jonathan Taylor's Week 13 bye leaves the backfield thin for one week.</li>
@@ -232,7 +241,7 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 <th data-field="pos">Pos</th>
 <th data-field="pos_rank_label">Rank</th>
 <th class="r" data-field="value">Value</th>
-<th class="r" data-field="trend_30d">30-day</th>
+<th class="r" data-field="trend_30d">30d</th>
 </tr></thead>
 <tbody data-draw="waiver-body" class="dash-skeleton"></tbody>
 </table>
@@ -288,24 +297,25 @@ const dash = (() => {
 
 dash.calc('value-gap', {
   title: 'Value lead over next-best roster',
-  description: "adamyeet's total roster value compared with the highest-value other team, as a percentage.",
+  description: "The viewed team's total roster value compared with the highest-value other team, as a percentage.",
   inputs: ['standings'],
   fn: (standings) => {
     if (!Array.isArray(standings) || !standings.length) return null;
-    const me = standings.find((r) => r.team === 'adamyeet');
-    const best = Math.max(...standings.filter((r) => r.team !== 'adamyeet').map((r) => Number(r.total_value)));
+    const team = window.viewTeam || 'adamyeet';
+    const me = standings.find((r) => r.team === team);
+    const best = Math.max(...standings.filter((r) => r.team !== team).map((r) => Number(r.total_value)));
     if (!me || !isFinite(best) || best <= 0) return null;
     return Math.round(((Number(me.total_value) - best) / best) * 100);
   }
 });
 dash.calc('champ-rank', {
   title: 'Championship-odds rank',
-  description: "Where adamyeet ranks in simulated championship odds among the 10 teams.",
+  description: "Where the viewed team ranks in simulated championship odds among the 10 teams.",
   inputs: ['odds'],
   fn: (odds) => {
     if (!Array.isArray(odds) || !odds.length) return null;
     const sorted = odds.slice().sort((a, b) => Number(b.champ_pct) - Number(a.champ_pct));
-    const i = sorted.findIndex((r) => r.team === 'adamyeet');
+    const i = sorted.findIndex((r) => r.team === (window.viewTeam || 'adamyeet'));
     return i < 0 ? null : i + 1;
   }
 });
@@ -397,12 +407,38 @@ dash.calc('league-table', {
       if (where) {
         const i = where.indexOf('=');
         const col = decodeURIComponent(where.slice(0, i));
-        const val = decodeURIComponent(where.slice(i + 1));
+        let val = decodeURIComponent(where.slice(i + 1));
+        if (col === 'team' && val === 'adamyeet') val = window.viewTeam || 'adamyeet';
         row = v.find((r) => String(r[col]) === val);
       }
       v = row ? row[el.dataset.field] : null;
     }
     el.textContent = v == null ? '—' : fmt[el.dataset.fmt || 'raw'](v);
+  });
+  const avatarImg = (team, cls) => {
+    const av = (dash.data('avatars') || {}).data;
+    const rec = av && av[team];
+    if (!rec || !rec.img || !/^https:\/\//.test(rec.img)) return null;
+    const img = document.createElement('img');
+    img.className = cls; img.src = rec.img; img.alt = ''; img.loading = 'lazy';
+    img.onerror = () => img.remove();
+    return img;
+  };
+  dash.draw('hero-lede', (el) => {
+    const g = dash.data('standings');
+    if (!ready(el, g)) { if (g.status !== 'loading') el.replaceChildren(); return; }
+    el.replaceChildren();
+    const team = window.viewTeam || 'adamyeet';
+    const av = (dash.data('avatars') || {}).data || {};
+    const r = g.data.find((x) => x.team === team);
+    if (!r) { el.textContent = '\u2014'; return; }
+    const cr = dash.data('champ-rank');
+    const vg = dash.data('value-gap');
+    const b = (t) => { const e = document.createElement('b'); e.textContent = t; return e; };
+    const label = av[team] && av[team].label ? ' (' + av[team].label + ')' : '';
+    el.append('Team ' + team + label + ' sits at ', b(r.record), ' with the No. ', b(String(r.value_rank)), ' roster by trade value');
+    if (Number(r.value_rank) === 1 && vg.status === 'ok' && vg.data != null) el.append(', ', b(vg.data + '%'), ' clear of the next-best roster');
+    el.append(' and the No. ', b(cr.status === 'ok' && cr.data != null ? String(cr.data) : '\u2014'), ' championship odds in this dashboard\u2019s best-ball simulation.');
   });
   const td = (txt, cls) => {
     const c = document.createElement('td');
@@ -436,8 +472,12 @@ dash.calc('league-table', {
     tb.replaceChildren();
     for (const r of sorted('standings-body', g.data)) {
       const tr = document.createElement('tr');
-      if (r.team === 'adamyeet') tr.className = 'me';
-      tr.append(td(r.team), td(r.record), td(fmt.int(r.total_value), 'r'),
+      if (r.team === (window.viewTeam || 'adamyeet')) tr.className = 'me';
+      const tc = document.createElement('td');
+      const ai = avatarImg(r.team, 'hq-av-s');
+      if (ai) tc.append(ai);
+      tc.append(r.team);
+      tr.append(tc, td(r.record), td(fmt.int(r.total_value), 'r'),
         td(r.exp_weekly_pts == null ? '—' : String(r.exp_weekly_pts), 'r'),
         r.playoffs_pct == null ? td('—', 'r') : tdNode(oddsChip(r.playoffs_pct), 'r'),
         r.bye_pct == null ? td('—', 'r') : tdNode(oddsChip(r.bye_pct), 'r'),
@@ -447,13 +487,21 @@ dash.calc('league-table', {
     }
   });
   dash.draw('roster-body', (tb) => {
-    const g = dash.data('roster');
-    if (!ready(tb, g)) { if (g.status !== 'loading') tb.replaceChildren(); return; }
+    const g = dash.data('matchdetail');
+    const vv = dash.data('values');
+    if (!ready(tb, g) || vv.status !== 'ok') { if (g.status !== 'loading') tb.replaceChildren(); return; }
     tb.replaceChildren();
-    const rows = filtered('roster-body', sorted('roster-body', g.data.slice().sort((a, b) => Number(b.value) - Number(a.value))));
+    const sel = document.querySelector('#roster-team');
+    const team = (sel && sel.value) || 'adamyeet';
+    const vals = vv.data || {};
+    const base = g.data.filter((pl) => pl.team === team).map((pl) => {
+      const v = vals[pl.pid] || [0, null, null];
+      return { player: pl.player, pos: pl.pos, pos_rank: v[1], value: v[0], trend_30d: v[2] };
+    });
+    const rows = filtered('roster-body', sorted('roster-body', base.sort((a, b) => Number(b.value) - Number(a.value))));
     for (const r of rows) {
       const tr = document.createElement('tr');
-      tr.append(td(r.player), tdNode(posBadge(r.pos)), td(String(r.pos_rank), 'r'), td(fmt.int(r.value), 'r'), trend(r.trend_30d));
+      tr.append(td(r.player), tdNode(posBadge(r.pos)), td(r.pos_rank == null ? '\u2014' : String(r.pos_rank), 'r'), td(fmt.int(r.value), 'r'), trend(r.trend_30d));
       tb.append(tr);
     }
   });
@@ -481,7 +529,8 @@ dash.calc('league-table', {
     const avail = (pl) => ({ Questionable: 0.78, Doubtful: 0.25, Out: 0, IR: 0.05, Sus: 0.5, PUP: 0.05, NA: 0.5 })[pl.inj] ?? 1;
     const val = (pl) => (pl.state === 'final' ? Number(pl.pts) : pl.state === 'live' ? Math.max(Number(pl.pts), Number(pl.proj)) : Math.round(Number(pl.proj) * avail(pl) * 10) / 10);
     const lpv = (team, fb) => { const row = lp.find((x) => x.team === team); return row ? row.proj_final : fb; };
-    const mine = g.data.filter((r) => r.team_a === 'adamyeet' || r.team_b === 'adamyeet');
+    const vt = window.viewTeam || 'adamyeet';
+    const mine = g.data.filter((r) => r.team_a === vt || r.team_b === vt);
     const rows = mine.concat(g.data.filter((r) => !mine.includes(r)));
     const box = d3.select(el).append('div').style('display', 'flex').style('flex-direction', 'column').style('gap', '10px');
     const asof = g.data[0] && g.data[0].asof;
@@ -498,30 +547,28 @@ dash.calc('league-table', {
       .text(lv.pulling ? 'Refreshing\u2026' : '\u21BB Refresh')
       .on('click', (ev) => { ev.stopPropagation(); if (window.pullLive) window.pullLive(); });
     rows.forEach((r, idx) => {
-      const isMine = mine.includes(r);
-      const big = idx === 0 && isMine;
       const key = r.team_a + '|' + r.team_b;
       const wrap = box.append('div').attr('class', 'hq-m').attr('tabindex', 0).attr('role', 'button')
         .attr('aria-expanded', openGames.has(key) ? 'true' : 'false');
       const head = wrap.append('div').style('display', 'flex').style('justify-content', 'space-between').style('gap', '8px')
-        .style('font-size', big ? 'var(--cds-font-size-body)' : 'var(--cds-font-size-caption)')
-        .style('font-weight', isMine ? 'var(--cds-font-weight-medium)' : 'normal')
-        .style('color', isMine ? 'var(--color-fg)' : 'var(--color-fg-muted)');
+        .style('font-size', 'var(--cds-font-size-caption)')
+        .style('color', 'var(--color-fg-muted)');
       const wcls = (pct) => (pct > 50 ? 'up' : pct < 50 ? 'down' : null);
       const left = head.append('span');
+      const la = avatarImg(r.team_a, 'hq-av-s');
+      if (la) left.node().append(la);
       left.append('span').text(r.team_a + ' ');
       left.append('span').attr('class', wcls(r.win_a_pct)).text(fmt.pct(r.win_a_pct));
       const right = head.append('span');
+      const ra = avatarImg(r.team_b, 'hq-av-s');
+      if (ra) right.node().append(ra);
       right.append('span').text(r.team_b + ' ');
       right.append('span').attr('class', wcls(r.win_b_pct)).text(fmt.pct(r.win_b_pct));
       right.append('span').attr('class', 'chev').text(' ' + (openGames.has(key) ? '▾' : '▸'));
-      const bar = wrap.append('div').style('display', 'flex').style('height', big ? '13px' : '7px')
+      const bar = wrap.append('div').style('display', 'flex').style('height', '7px')
         .style('border-radius', '999px').style('overflow', 'hidden').style('margin-top', '4px');
-      const aMine = r.team_a === 'adamyeet';
-      bar.append('div').style('width', r.win_a_pct + '%')
-        .style('background', isMine ? (aMine ? 'var(--hq-gold)' : 'var(--cds-chart-muted)') : dash.colors[0]);
-      bar.append('div').style('flex', '1')
-        .style('background', isMine ? (aMine ? 'var(--cds-chart-muted)' : 'var(--hq-gold)') : 'var(--cds-chart-muted)');
+      bar.append('div').style('width', r.win_a_pct + '%').style('background', dash.colors[0]);
+      bar.append('div').style('flex', '1').style('background', 'var(--cds-chart-muted)');
       const sub = wrap.append('div').style('display', 'flex').style('justify-content', 'space-between').style('gap', '8px')
         .style('margin-top', '3px').style('font-size', 'var(--cds-font-size-caption)').style('color', 'var(--color-fg-muted)');
       const sline = (scored, proj) => {
@@ -771,8 +818,41 @@ dash.calc('league-table', {
     try {
       const d = await fetch('data.json', { cache: 'no-store' }).then((r) => r.json());
       window.DATA = d;
-      window.dashData = { standings: d.standings, roster: d.roster, waivers: d.waivers, odds: d.odds,
-        matchups: d.matchups, matchdetail: d.players, toilet: d.toilet };
+      window.dashData = { standings: d.standings, values: d.values, waivers: d.waivers, odds: d.odds,
+        matchups: d.matchups, matchdetail: d.players, toilet: d.toilet, avatars: d.avatars || {} };
+      window.viewTeam = d.me;
+      const va = document.querySelector('#view-as');
+      if (va && !va.children.length) {
+        const teams = [d.me].concat(d.standings.map((r) => r.team).filter((t) => t !== d.me));
+        for (const t of teams) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          const rec = (d.avatars || {})[t];
+          if (rec && rec.img && /^https:\/\//.test(rec.img)) {
+            const img = document.createElement('img');
+            img.className = 'hq-av'; img.src = rec.img; img.alt = ''; img.loading = 'lazy';
+            img.onerror = () => img.remove();
+            btn.append(img);
+          }
+          btn.append(t);
+          if (rec && rec.label) btn.title = rec.label;
+          if (t === d.me) btn.classList.add('on');
+          btn.addEventListener('click', () => {
+            window.viewTeam = t;
+            va.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === btn));
+            const rs = document.querySelector('#roster-team');
+            if (rs) rs.value = t;
+            dash.redrawAll();
+          });
+          va.append(btn);
+        }
+      }
+      const sel = document.querySelector('#roster-team');
+      if (sel && !sel.options.length) {
+        const teams = [d.me].concat(d.standings.map((r) => r.team).filter((t) => t !== d.me));
+        for (const t of teams) { const o = document.createElement('option'); o.value = t; o.textContent = t; sel.append(o); }
+        sel.addEventListener('change', () => dash.draw('roster-body'));
+      }
       dash.redrawAll();
       pullLive();
       document.addEventListener('visibilitychange', () => {
