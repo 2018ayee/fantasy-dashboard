@@ -90,9 +90,15 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 .hq-m.me{background:color-mix(in srgb,var(--hq-gold) 8%,transparent);box-shadow:inset 3px 0 0 var(--hq-gold)}
 .hq-m .tn.me{color:var(--color-fg);font-weight:var(--cds-font-weight-medium)}
 .hq-m .hq-lu{cursor:auto;user-select:text}
-.hq-viewas{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}
-.hq-viewas button{display:flex;align-items:center;gap:6px;font:inherit;font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:999px;padding:3px 10px 3px 4px;cursor:pointer}
-.hq-viewas button.on{color:var(--color-fg);border-color:var(--hq-gold);box-shadow:inset 0 0 0 1px var(--hq-gold);font-weight:var(--cds-font-weight-medium)}
+.hq-viewas{position:relative;display:inline-block;margin:10px 0 2px}
+.hq-viewas > button{display:flex;align-items:center;gap:8px;font:inherit;font-size:var(--cds-font-size-caption);color:var(--color-fg);background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:999px;padding:4px 12px 4px 5px;cursor:pointer}
+.hq-viewas > button .lbl{color:var(--color-fg-muted)}
+.hq-viewas .menu{position:absolute;top:calc(100% + 5px);left:0;z-index:30;min-width:230px;background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:10px;box-shadow:0 10px 28px rgba(0,0,0,.14);padding:4px;display:none;max-height:330px;overflow:auto}
+.hq-viewas.open .menu{display:block}
+.hq-viewas .menu button{display:flex;width:100%;align-items:center;gap:8px;background:none;border:0;font:inherit;font-size:var(--cds-font-size-caption);color:var(--color-fg);padding:6px 8px;border-radius:6px;cursor:pointer;text-align:left}
+.hq-viewas .menu button .sub{color:var(--color-fg-muted);margin-left:auto;padding-left:10px}
+.hq-viewas .menu button:hover{background:color-mix(in srgb,var(--color-fg) 6%,transparent)}
+.hq-viewas .menu button.on{background:color-mix(in srgb,var(--hq-gold) 12%,transparent)}
 .hq-av{width:20px;height:20px;border-radius:50%;background:var(--cds-chart-muted);object-fit:cover;flex:none}
 .hq-av-s{width:17px;height:17px;border-radius:50%;background:var(--cds-chart-muted);object-fit:cover;vertical-align:-4px;margin-right:6px}
 .hq-teamsel{margin:8px 0 2px}
@@ -182,7 +188,7 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 </section>
 <section id="matchups" class="hq-card">
 <h2><span class="dot" style="background:var(--hq-rb)"></span>Matchups</h2>
-<p class="hq-sub">Real pairings. Win odds start at the pre-week player-level simulation and update live: the margin follows the live projected finals, and the uncertainty shrinks as points bank and clocks run. Tap a game to open the best-ball lineups. The bold number is points already on the board; beside it is the projected final — finished games lock in, in-progress players blend what they’ve scored with the rest of their game, and unplayed games carry their projection.</p>
+<p class="hq-sub">Tap a game. The odds move while the games do.</p>
 <div class="hq-mini dash-skeleton" data-draw="thisweek-card" data-source="matchups matchdetail live-proj" data-field="win_a_pct">—</div>
 </section>
 </div>
@@ -207,25 +213,20 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 <div class="hq-2col">
 <section id="title-odds" class="hq-card">
 <h2><span class="dot" style="background:var(--hq-qb)"></span>Championship odds</h2>
-<p class="hq-sub">Player-level best-ball simulation, 5,000 seasons. Under 1% shows as &lt;1%.</p>
+<p class="hq-sub">5,000 simulated seasons, zero mercy.</p>
 <div class="hq-chart dash-skeleton" data-draw="odds-chart" data-source="odds" data-field="champ_pct">—</div>
 </section>
 <section id="toilet" class="hq-card">
 <h2><span class="dot" style="background:var(--color-bad)"></span>Toilet bowl: Waffle House watch</h2>
-<p class="hq-sub">The bottom 2 spend 24 hours at Waffle House, one hour off per waffle. Bars: odds under the weeks 15-17 round robin. Dot: if Week 15 alone decided. Teams not shown have clinched safety.</p>
+<p class="hq-sub">Bottom two spend 24 hours at Waffle House; every waffle eaten is an hour off. Bars: the Weeks 15-17 round robin. Dot: if Week 15 alone decided it. Teams not shown have clinched safety.</p>
 <div class="hq-mini dash-skeleton" data-draw="toilet-bars" data-source="toilet" data-field="waffle_rr_pct">—</div>
 </section>
 </div>
 <div class="hq-2col">
 <section id="moves" class="hq-card">
 <h2><span class="dot" style="background:var(--hq-gold)"></span>Moves to make</h2>
-<p class="hq-sub">adamyeet’s plan, written for Week 12. Rewritten at each data refresh; figures are FantasyCalc trade values and update live from the data.</p>
-<ol class="hq-moves">
-<li><b>Claim A.J. Brown.</b> At <b data-draw="cell" data-fmt="int" data-source="waivers" data-field="value" data-where="player=A.J. Brown" class="dash-skeleton">—</b> he is the most valuable free agent in the league by a wide margin and slots in as the WR3 behind St. Brown and Golden. Make room by dropping Chig Okonkwo (<b data-draw="cell" data-fmt="int" data-source="roster" data-field="value" data-where="player=Chig Okonkwo" class="dash-skeleton">—</b>, third tight end) or Deshaun Watson (<b data-draw="cell" data-fmt="int" data-source="roster" data-field="value" data-where="player=Deshaun Watson" class="dash-skeleton">—</b>, third quarterback).</li>
-<li><b>Add Woody Marks as running back cover.</b> He is the top free-agent back at <b data-draw="cell" data-fmt="int" data-source="waivers" data-field="value" data-where="player=Woody Marks" class="dash-skeleton">—</b>, and Jonathan Taylor's Week 13 bye leaves the backfield thin for one week.</li>
-<li><b>Shop Tony Pollard.</b> At <b data-draw="cell" data-fmt="int" data-source="roster" data-field="value" data-where="player=Tony Pollard" class="dash-skeleton">—</b> he is the most valuable benched player in the league, and the three 5-6 teams chasing the last playoff spots are natural buyers.</li>
-<li><b>Chase seeding.</b> The model gives you a <b data-draw="cell" data-fmt="pct" data-source="odds" data-field="bye_pct" data-where="team=adamyeet" class="dash-skeleton">—</b> shot at a first-round bye against <b data-draw="cell" data-fmt="pct" data-source="odds" data-field="bye_pct" data-where="team=ZachWilsonFan5" class="dash-skeleton">—</b> for ZachWilsonFan5 and <b data-draw="cell" data-fmt="pct" data-source="odds" data-field="bye_pct" data-where="team=mvpatel2000" class="dash-skeleton">—</b> for mvpatel2000, so the last three regular-season weeks decide whether you skip a playoff round.</li>
-</ol>
+<p class="hq-sub" data-draw="moves-note">—</p>
+<ol class="dash-skeleton" data-draw="moves-list" data-source="moves">—</ol>
 </section>
 <section id="waivers" class="hq-card">
 <h2><span class="dot" style="background:var(--hq-rb)"></span>Waiver board</h2>
@@ -432,15 +433,58 @@ dash.calc('league-table', {
     el.replaceChildren();
     const team = window.viewTeam || 'adamyeet';
     const av = (dash.data('avatars') || {}).data || {};
+    const od = dash.data('odds');
+    const tl = dash.data('toilet');
+    const det = dash.data('matchdetail');
+    const vv = dash.data('values');
     const r = g.data.find((x) => x.team === team);
     if (!r) { el.textContent = '\u2014'; return; }
-    const cr = dash.data('champ-rank');
-    const vg = dash.data('value-gap');
-    const b = (t) => { const e = document.createElement('b'); e.textContent = t; return e; };
+    const o = od.status === 'ok' ? (od.data || []).find((x) => x.team === team) : null;
+    const t = tl.status === 'ok' ? (tl.data || []).find((x) => x.team === team) : null;
+    const b = (txt) => { const e = document.createElement('b'); e.textContent = txt; return e; };
+    const crd = dash.data('champ-rank');
+    const vgd = dash.data('value-gap');
+    const vr = Number(r.value_rank);
+    const wins = Number(r.wins), losses = Number(r.losses);
+    const c = o ? Number(o.champ_pct) : 0;
+    const pp = o ? Number(o.playoffs_pct) : 0;
+    const bye = o ? Number(o.bye_pct) : 0;
+    const waf = t ? Number(t.waffle_rr_pct) : 0;
+    const crv = crd.status === 'ok' && crd.data != null ? Number(crd.data) : null;
     const label = av[team] && av[team].label ? ' (' + av[team].label + ')' : '';
-    el.append('Team ' + team + label + ' sits at ', b(r.record), ' with the No. ', b(String(r.value_rank)), ' roster by trade value');
-    if (Number(r.value_rank) === 1 && vg.status === 'ok' && vg.data != null) el.append(', ', b(vg.data + '%'), ' clear of the next-best roster');
-    el.append(' and the No. ', b(cr.status === 'ok' && cr.data != null ? String(cr.data) : '\u2014'), ' championship odds in this dashboard\u2019s best-ball simulation.');
+    // opener
+    el.append('Team ' + team + label + ' sits at ', b(r.record), ' with the No. ', b(String(vr)), ' roster by trade value');
+    if (vr === 1 && vgd.status === 'ok' && vgd.data != null) el.append(', ', b(vgd.data + '%'), ' clear of the field');
+    el.append('. ');
+    // situation quip (first match wins)
+    if (c >= 30 && vr === 1 && crv === 1) {
+      el.append('No. 1 title odds at ', b(Math.round(c) + '%'), ' \u2014 the villain era is going smoothly, thanks for asking.');
+    } else if (c >= 30) {
+      el.append('A ', b(Math.round(c) + '%'), ' title shot has the rest of the league playing for second and getting snippy about it.');
+    } else if (pp <= 0.5 && waf >= 30) {
+      el.append('The sim played 5,000 seasons and found ', b('zero'), ' with playoffs in them \u2014 but a ', b(Math.round(waf) + '%'), ' shot at the 24-hour Waffle House sentence keeps the season meaningful.');
+    } else if (pp <= 0.5) {
+      el.append('The sim played 5,000 seasons and found ', b('zero'), ' where this ends well. The draft is only four months away.');
+    } else if (waf >= 40) {
+      el.append('More urgently: a ', b(Math.round(waf) + '%'), ' chance of the 24-hour Waffle House residency. One waffle, one hour. Start stretching.');
+    } else if (vr <= 3 && losses - wins >= 2) {
+      el.append('A top-', b(String(vr)), ' roster with a ', b(r.record), ' record \u2014 tremendous talent, minimal interest in showing up on Sundays.');
+    } else if (pp >= 99.5 && bye >= 70) {
+      el.append('Playoffs locked, bye odds at ', b(Math.round(bye) + '%'), ' \u2014 the regular season is basically over; try not to get anyone hurt.');
+    } else if (pp >= 99.5) {
+      el.append('Playoffs are locked; the ', b(Math.round(bye) + '%'), ' bye race decides whether Week 15 is a rest week or an extra chance to choke.');
+    } else if (pp >= 50) {
+      el.append('Playoff odds sit at ', b(Math.round(pp) + '%'), ', which is the sim\u2019s way of saying \u201Cprobably fine \u2014 don\u2019t do anything weird.\u201D');
+    } else {
+      el.append('Playoff odds: ', b(Math.round(pp) + '%'), ' \u2014 mathematically alive, spiritually on the bubble.');
+    }
+    // 30-day value trend
+    if (det.status === 'ok' && vv.status === 'ok' && vv.data) {
+      let tr = 0;
+      for (const pl of det.data) if (pl.team === team && vv.data[pl.pid]) tr += Number(vv.data[pl.pid][2]) || 0;
+      if (tr >= 1500) el.append(' Roster value is up ', b(fmt.int(tr)), ' over 30 days \u2014 somebody\u2019s been working the wire.');
+      else if (tr <= -1500) el.append(' Roster value is down ', b(fmt.int(Math.abs(tr))), ' over the last month, which the league chat has definitely noticed.');
+    }
   });
   const td = (txt, cls) => {
     const c = document.createElement('td');
@@ -468,6 +512,27 @@ dash.calc('league-table', {
     return s;
   };
   const trend = (v) => (v == null ? td('', 'r') : td(fmt.signed(v), 'r ' + (Number(v) >= 0 ? 'up' : 'down')));
+  dash.draw('moves-note', (el) => {
+    const team = window.viewTeam || 'adamyeet';
+    el.textContent = 'This week\u2019s business for ' + team + '.';
+  });
+  dash.draw('moves-list', (el) => {
+    const g = dash.data('moves');
+    if (g.status !== 'ok' || !g.data) { el.textContent = '\u2014'; return; }
+    el.replaceChildren();
+    const team = window.viewTeam || 'adamyeet';
+    const items = g.data[team] || [];
+    for (const s of items) {
+      const li = document.createElement('li');
+      String(s).split('**').forEach((t, i) => {
+        if (!t) return;
+        if (i % 2) { const bb = document.createElement('b'); bb.textContent = t; li.append(bb); }
+        else li.append(t);
+      });
+      el.append(li);
+    }
+    if (!items.length) el.textContent = 'No notes for this team this week.';
+  });
   dash.draw('standings-body', (tb) => {
     const g = dash.data('league-table');
     if (!ready(tb, g)) { if (g.status !== 'loading') tb.replaceChildren(); return; }
@@ -655,7 +720,7 @@ dash.calc('league-table', {
         mx.append('div').attr('class', 'bh').text('Bench');
         slotRows(A.bench, B.bench, true);
         mx.append('div').style('grid-column', '1 / -1').style('color', 'var(--color-fg-muted)').style('padding-top', '4px')
-          .text('Bold = scored / projected · plain = projected · ● = in a live game · ✓ = game finished · Q/D/O/IR = injury status (projections scaled to match: Q ×0.78, D ×0.25, Out/IR ≈0). Slots filled best-ball optimally.');
+          .text('Bold = scored · plain = projected · ● live · ✓ final · Q/D/O/IR scale the projection.');
       }
       const toggle = () => {
         if (openGames.has(key)) openGames.delete(key); else openGames.add(key);
@@ -669,7 +734,7 @@ dash.calc('league-table', {
       wrap.on('keydown', (ev) => { if ((ev.key === 'Enter' || ev.key === ' ') && ev.target === ev.currentTarget) { ev.preventDefault(); toggle(); } });
     });
     box.append('p').attr('class', 'hq-sub').style('margin-top', '2px')
-      .text('Win odds anchor to the pre-week simulation and sharpen live as games finish; scores, game states and projections refresh straight from Sleeper while games are on.');
+      .text('Live from Sleeper while games are on; the deep math lives under “How the playoff odds are modeled.”');
   });
   dash.draw('toilet-bars', (el) => {
     const g = dash.data('toilet');
@@ -860,33 +925,56 @@ dash.calc('league-table', {
       const d = await fetch('data.json', { cache: 'no-store' }).then((r) => r.json());
       window.DATA = d;
       window.dashData = { standings: d.standings, values: d.values, waivers: d.waivers, odds: d.odds,
-        matchups: d.matchups, matchdetail: d.players, toilet: d.toilet, avatars: d.avatars || {} };
+        matchups: d.matchups, matchdetail: d.players, toilet: d.toilet, avatars: d.avatars || {}, moves: d.moves || {} };
       window.viewTeam = d.me;
       const va = document.querySelector('#view-as');
       if (va && !va.children.length) {
+        const avatarEl = (t) => {
+          const rec = (d.avatars || {})[t];
+          if (!rec || !rec.img || !/^https:\/\//.test(rec.img)) return null;
+          const img = document.createElement('img');
+          img.className = 'hq-av'; img.src = rec.img; img.alt = ''; img.loading = 'lazy';
+          img.onerror = () => img.remove();
+          return img;
+        };
         const teams = [d.me].concat(d.standings.map((r) => r.team).filter((t) => t !== d.me));
+        const root = document.createElement('button');
+        root.type = 'button'; root.setAttribute('aria-haspopup', 'listbox');
+        const menu = document.createElement('div');
+        menu.className = 'menu'; menu.setAttribute('role', 'listbox');
+        const setRoot = (t) => {
+          root.replaceChildren();
+          const ai = avatarEl(t);
+          if (ai) root.append(ai);
+          const lbl = document.createElement('span'); lbl.className = 'lbl'; lbl.textContent = 'Viewing as';
+          root.append(lbl, t, ' \u25BE');
+        };
+        setRoot(d.me);
         for (const t of teams) {
           const btn = document.createElement('button');
-          btn.type = 'button';
-          const rec = (d.avatars || {})[t];
-          if (rec && rec.img && /^https:\/\//.test(rec.img)) {
-            const img = document.createElement('img');
-            img.className = 'hq-av'; img.src = rec.img; img.alt = ''; img.loading = 'lazy';
-            img.onerror = () => img.remove();
-            btn.append(img);
-          }
+          btn.type = 'button'; btn.setAttribute('role', 'option');
+          const ai = avatarEl(t);
+          if (ai) btn.append(ai);
           btn.append(t);
-          if (rec && rec.label) btn.title = rec.label;
+          const rec = (d.avatars || {})[t];
+          if (rec && rec.label) { const s = document.createElement('span'); s.className = 'sub'; s.textContent = rec.label; btn.append(s); }
           if (t === d.me) btn.classList.add('on');
-          btn.addEventListener('click', () => {
+          btn.addEventListener('click', (ev) => {
+            ev.stopPropagation();
             window.viewTeam = t;
-            va.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === btn));
+            menu.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === btn));
+            setRoot(t);
+            va.classList.remove('open');
             const rs = document.querySelector('#roster-team');
             if (rs) rs.value = t;
             dash.redrawAll();
           });
-          va.append(btn);
+          menu.append(btn);
         }
+        root.addEventListener('click', (ev) => { ev.stopPropagation(); va.classList.toggle('open'); });
+        document.addEventListener('click', () => va.classList.remove('open'));
+        document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') va.classList.remove('open'); });
+        va.append(root, menu);
       }
       const sel = document.querySelector('#roster-team');
       if (sel && !sel.options.length) {
