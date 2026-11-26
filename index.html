@@ -102,6 +102,8 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 .hq-av{width:20px;height:20px;border-radius:50%;background:var(--cds-chart-muted);object-fit:cover;flex:none}
 .hq-av-s{width:17px;height:17px;border-radius:50%;background:var(--cds-chart-muted);object-fit:cover;vertical-align:-4px;margin-right:6px}
 .hq-tiles-wk{margin-top:10px}
+.hq-tiles-wk .hq-tile .v{font-size:23px}
+.hq-tiles-wk .hq-tile .who{display:block;font-size:var(--cds-font-size-caption);font-weight:var(--cds-font-weight-medium);color:var(--color-fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:1px 0 2px}
 .hq-tabbar{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 18px;border-bottom:1px solid var(--color-border-line);padding-bottom:10px}
 .hq-tabbar button{font:inherit;font-size:var(--cds-font-size-body);color:var(--color-fg-muted);background:transparent;border:1px solid transparent;border-radius:999px;padding:6px 14px;cursor:pointer}
 .hq-tabbar button:hover{color:var(--color-fg)}
@@ -251,6 +253,22 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 <h2><span class="dot" style="background:var(--hq-gold)"></span>Moves to make</h2>
 <p class="hq-sub" data-draw="moves-note">—</p>
 <ol class="dash-skeleton" data-draw="moves-list" data-source="moves">—</ol>
+</section>
+<section id="pickups" class="hq-card">
+<h2><span class="dot" style="background:var(--hq-te)"></span>Best pickups of the season</h2>
+<p class="hq-sub">Waiver-wire hits, ranked by points since the claim. Everyone else scrolled past.</p>
+<div class="hq-tablewrap">
+<table data-source="pickups">
+<thead><tr>
+<th>Player</th>
+<th>Claimed by</th>
+<th class="r">Week</th>
+<th class="r">Pts since</th>
+<th class="r">Value</th>
+</tr></thead>
+<tbody class="dash-skeleton" data-draw="pickups-body"><tr><td>—</td></tr></tbody>
+</table>
+</div>
 </section>
 <section id="waivers" class="hq-card">
 <h2><span class="dot" style="background:var(--hq-rb)"></span>Waiver board</h2>
@@ -566,21 +584,18 @@ dash.calc('league-table', {
     if (!ready(el, det)) { if (det.status !== 'loading') el.replaceChildren(); return; }
     el.replaceChildren();
     const tiles = [];
-    const tile = (k, v, s, color) => tiles.push([k, v, s, color]);
+    const tile = (k, num, who, s, color) => tiles.push([k, num, who, s, color]);
     const ps = det.data;
-    // top score banked
     const played = ps.filter((x) => x.state !== 'upcoming' && Number(x.pts) > 0);
     if (played.length) {
       const top = played.reduce((a, x) => (Number(x.pts) > Number(a.pts) ? x : a));
-      tile('Top score', top.player + ' \u00B7 ' + top.pts, nameOf(top.team) + ' banked it' + (top.state === 'live' ? ', still cooking' : ''), 'var(--hq-gold)');
+      tile('Top score', top.pts, top.player, nameOf(top.team) + ' banked it' + (top.state === 'live' ? ', still cooking' : ''), 'var(--hq-gold)');
     }
-    // crime scene: worst shortfall in a finished game
     const finals = ps.filter((x) => x.state === 'final' && Number(x.proj) >= 8 && (!x.inj || x.inj === 'Questionable'));
     if (finals.length) {
       const dud = finals.reduce((a, x) => (Number(x.proj) - Number(x.pts) > Number(a.proj) - Number(a.pts) ? x : a));
-      if (Number(dud.proj) - Number(dud.pts) > 3) tile('Crime scene', dud.player + ' \u00B7 ' + dud.pts, 'projected ' + dud.proj + ', delivered that. Thoughts and prayers, ' + nameOf(dud.team), 'var(--color-bad)');
+      if (Number(dud.proj) - Number(dud.pts) > 3) tile('Crime scene', dud.pts, dud.player, 'projected ' + dud.proj + '. Thoughts and prayers, ' + nameOf(dud.team), 'var(--color-bad)');
     }
-    // stonks / falling knife from 30-day value
     if (vv.status === 'ok' && vv.data) {
       let up = null, dn = null;
       for (const x of ps) {
@@ -589,24 +604,23 @@ dash.calc('league-table', {
         if (!up || v[2] > vv.data[up.pid][2]) up = x;
         if (!dn || v[2] < vv.data[dn.pid][2]) dn = x;
       }
-      if (up && vv.data[up.pid][2] > 0) tile('Stonks', up.player + ' +' + fmt.int(vv.data[up.pid][2]), '30-day value \u00B7 ' + nameOf(up.team) + '\u2019s guy', 'var(--color-ok)');
-      if (dn && vv.data[dn.pid][2] < 0) tile('Falling knife', dn.player + ' ' + fmt.int(vv.data[dn.pid][2]), '30 days of decline \u00B7 condolences, ' + nameOf(dn.team), 'var(--hq-qb)');
+      if (up && vv.data[up.pid][2] > 0) tile('Stonks', '+' + fmt.int(vv.data[up.pid][2]), up.player, '30-day value, ' + nameOf(up.team) + '\u2019s guy', 'var(--color-ok)');
+      if (dn && vv.data[dn.pid][2] < 0) tile('Falling knife', fmt.int(vv.data[dn.pid][2]), dn.player, '30 days of decline. Condolences, ' + nameOf(dn.team), 'var(--hq-qb)');
     }
-    // photo finish: closest projected final
     if (mu.status === 'ok' && lpg.status === 'ok' && Array.isArray(lpg.data)) {
       const pf = (t, fb) => { const r = lpg.data.find((x) => x.team === t); return r ? r.proj_final : fb; };
-      let best = null, gap = 1e9;
+      let bestR = null, gap = 1e9;
       for (const r of mu.data) {
         const g2 = Math.abs(pf(r.team_a, r.proj_a) - pf(r.team_b, r.proj_b));
-        if (g2 < gap) { gap = g2; best = r; }
+        if (g2 < gap) { gap = g2; bestR = r; }
       }
-      if (best) tile('Photo finish', best.team_a + ' vs ' + best.team_b, 'projected ' + gap.toFixed(1) + ' apart \u2014 somebody\u2019s losing this by a missed kick', 'var(--hq-rb)');
+      if (bestR) tile('Photo finish', gap.toFixed(1) + ' apart', nameOf(bestR.team_a) + ' vs ' + nameOf(bestR.team_b), 'somebody\u2019s losing this by a missed kick', 'var(--hq-rb)');
     }
-    for (const [k, v, s, color] of tiles) {
+    for (const [k, num, who, s, color] of tiles) {
       const dv = document.createElement('div');
       dv.className = 'hq-tile'; dv.style.setProperty('--tile', color);
       const mk = (cls, txt) => { const e = document.createElement('span'); e.className = cls; e.textContent = txt; dv.append(e); };
-      mk('k', k); mk('v', v); mk('s', s);
+      mk('k', k); mk('v', num); mk('who', who); mk('s', s);
       el.append(dv);
     }
   });
@@ -666,6 +680,29 @@ dash.calc('league-table', {
         card.append(nt);
       }
       el.append(card);
+    }
+  });
+  dash.draw('pickups-body', (tb) => {
+    const g = dash.data('pickups');
+    if (!ready(tb, g)) { if (g.status !== 'loading') tb.replaceChildren(); return; }
+    tb.replaceChildren();
+    for (const r of g.data) {
+      const tr = document.createElement('tr');
+      const nmTd = document.createElement('td');
+      nmTd.textContent = r.player + ' ';
+      nmTd.append(posBadge(r.pos));
+      const byTd = document.createElement('td');
+      const ai = avatarImg(r.team, 'hq-av-s');
+      if (ai) byTd.append(ai);
+      byTd.append(nameOf(r.team));
+      tr.append(nmTd, byTd, td('Wk ' + r.week, 'r'));
+      const ptsTd = document.createElement('td');
+      ptsTd.className = 'r';
+      const pb = document.createElement('b');
+      pb.textContent = r.pts;
+      ptsTd.append(pb);
+      tr.append(ptsTd, td(fmt.int(r.v), 'r'));
+      tb.append(tr);
     }
   });
   dash.draw('moves-note', (el) => {
@@ -1101,7 +1138,7 @@ dash.calc('league-table', {
       const d = await fetch('data.json', { cache: 'no-store' }).then((r) => r.json());
       window.DATA = d;
       window.dashData = { standings: d.standings, values: d.values, waivers: d.waivers, odds: d.odds,
-        matchups: d.matchups, matchdetail: d.players, toilet: d.toilet, avatars: d.avatars || {}, moves: d.moves || {}, trades: d.trades || [], games: d.games || {}, names: d.names || {} };
+        matchups: d.matchups, matchdetail: d.players, toilet: d.toilet, avatars: d.avatars || {}, moves: d.moves || {}, trades: d.trades || [], games: d.games || {}, names: d.names || {}, pickups: d.pickups || [] };
       let initTeam = d.me;
       try {
         const qp = new URLSearchParams(location.search).get('as');
