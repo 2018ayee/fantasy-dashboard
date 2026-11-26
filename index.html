@@ -1,0 +1,771 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pee Pee League HQ</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏈</text></svg>">
+<script src="d3.v7.min.js"></script>
+<style>
+:root{
+  --color-bg:#faf9f5;--color-panel:#ffffff;--color-fg:#1a1915;--color-fg-muted:#6e6b61;
+  --color-border-line:#e3e0d6;--color-ok:#2e7d4f;--color-bad:#c0392b;
+  --cds-chart-muted:#d9d5c9;--cds-chart-status-critical:#c0392b;
+  --cds-font-size-caption:12.5px;--cds-font-size-body:14.5px;--cds-font-size-heading:19px;--cds-font-size-title:26px;
+  --cds-font-weight-medium:600;--cds-radius:10px;
+  --cds-pad-lg:20px;--cds-pad-md:14px;--cds-gap-xs:4px;--cds-gap-sm:8px;--cds-gap-md:12px;--cds-gap-lg:20px;
+  --cds-text-secondary:var(--color-fg-muted);
+  --font-anthropic-serif:Georgia,'Times New Roman',serif;
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme:dark){:root{
+  --color-bg:#191813;--color-panel:#23221c;--color-fg:#ece9e2;--color-fg-muted:#a09c8f;
+  --color-border-line:#393731;--color-ok:#5fbf8a;--color-bad:#e07a6a;
+  --cds-chart-muted:#45433b;
+}}
+*{box-sizing:border-box}
+body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--color-fg);
+  font:var(--cds-font-size-body)/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;-webkit-text-size-adjust:100%}
+.site-foot{max-width:1080px;margin:28px auto 0;font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
+.site-foot a{color:inherit}
+.dash-skeleton{opacity:.45}
+
+.hq{display:flex;flex-direction:column;gap:var(--cds-gap-lg);font-variant-numeric:tabular-nums;max-width:1080px;margin:0 auto;
+ --hq-qb:#e05c7e;--hq-rb:#1fb3a3;--hq-wr:#4d9fe8;--hq-te:#e8954d;--hq-gold:#c9a227}
+.hq h1{font-family:var(--font-anthropic-serif);font-weight:400;font-size:var(--cds-font-size-title);margin:0}
+.hq h2{font-size:var(--cds-font-size-heading);font-weight:var(--cds-font-weight-medium);margin:0;display:flex;align-items:center;gap:8px}
+.hq h2 .dot{width:9px;height:9px;border-radius:3px;flex:none}
+.hq-lede{color:var(--color-fg-muted);max-width:62ch;margin:var(--cds-gap-xs) 0 0}
+.hq-nav{display:flex;flex-wrap:wrap;gap:var(--cds-gap-xs)}
+.hq-nav a{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);text-decoration:none;border:1px solid var(--color-border-line);border-radius:999px;padding:3px 11px;background:var(--color-panel)}
+.hq-nav a:hover{color:var(--color-fg);border-color:var(--color-fg-muted)}
+.hq-2col{display:grid;grid-template-columns:1fr 1fr;gap:var(--cds-gap-lg);align-items:stretch}
+.hq-2col>*{min-width:0}
+@media (max-width:860px){.hq-2col{grid-template-columns:1fr}}
+.hq-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:var(--cds-gap-md)}
+.hq-tile{background:var(--color-panel);border:1px solid var(--color-border-line);border-top:3px solid var(--tile,var(--color-border-line));border-radius:var(--cds-radius);padding:var(--cds-pad-md) var(--cds-pad-lg);display:flex;flex-direction:column;gap:2px}
+.hq-tile .k{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);letter-spacing:.04em;text-transform:uppercase}
+.hq-tile .v{font-family:var(--font-anthropic-serif);font-weight:400;font-size:26px;line-height:1.15}
+.hq-tile .s{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
+.hq-card{background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:var(--cds-pad-lg);display:flex;flex-direction:column;gap:var(--cds-gap-md)}
+.hq-sub{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);margin:0}
+.hq-chart{min-height:280px}
+.hq-mini{min-height:120px}
+.hq-tablewrap{overflow-x:auto}
+.hq table{border-collapse:collapse;width:100%;font-size:var(--cds-font-size-body)}
+.hq th{text-align:left;font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);font-weight:var(--cds-font-weight-medium);padding:6px 10px;border-bottom:1px solid var(--color-border-line);white-space:nowrap}
+.hq td{padding:5px 10px;border-bottom:1px solid var(--color-border-line);white-space:nowrap}
+.hq td.r,.hq th.r{text-align:right}
+.hq th[data-field]{cursor:pointer;user-select:none}
+.hq th[data-field]:hover{color:var(--color-fg)}
+.hq th[data-field]::after{content:" \21C5";opacity:.4;font-size:.9em}
+.hq th[aria-sort="descending"]::after{content:" \2193";opacity:1}
+.hq th[aria-sort="ascending"]::after{content:" \2191";opacity:1}
+.hq tr.me td{font-weight:var(--cds-font-weight-medium);background:color-mix(in srgb,var(--hq-gold) 9%,transparent)}
+.hq tr.me td:first-child{box-shadow:inset 3px 0 0 var(--hq-gold)}
+.hq .up{color:var(--color-ok)}
+.hq .down{color:var(--color-bad)}
+.hq .pos{display:inline-block;font-size:var(--cds-font-size-caption);font-weight:var(--cds-font-weight-medium);padding:1px 7px;border-radius:999px;letter-spacing:.03em}
+.hq .pos-QB{color:var(--hq-qb);background:color-mix(in srgb,var(--hq-qb) 14%,transparent)}
+.hq .pos-RB{color:var(--hq-rb);background:color-mix(in srgb,var(--hq-rb) 14%,transparent)}
+.hq .pos-WR{color:var(--hq-wr);background:color-mix(in srgb,var(--hq-wr) 14%,transparent)}
+.hq .pos-TE{color:var(--hq-te);background:color-mix(in srgb,var(--hq-te) 14%,transparent)}
+.hq .chip{display:inline-block;min-width:3.2em;text-align:right;padding:1px 7px;border-radius:999px}
+.hq .chip.hi{color:var(--color-ok);background:color-mix(in srgb,var(--color-ok) 12%,transparent)}
+.hq .chip.mid{color:var(--color-fg);background:color-mix(in srgb,var(--color-fg-muted) 14%,transparent)}
+.hq .chip.lo{color:var(--color-fg-muted)}
+.hq .chip.bad{color:var(--color-bad);background:color-mix(in srgb,var(--color-bad) 10%,transparent)}
+.hq-filter{display:flex;gap:6px;flex-wrap:wrap}
+.hq-filter .f{font-size:var(--cds-font-size-caption);font-weight:var(--cds-font-weight-medium);border:1px solid var(--color-border-line);background:transparent;color:var(--color-fg-muted);border-radius:999px;padding:2px 11px;cursor:pointer}
+.hq-filter .f:hover{color:var(--color-fg)}
+.hq-filter .f.on{color:var(--color-fg);border-color:var(--color-fg-muted);background:color-mix(in srgb,var(--color-fg-muted) 12%,transparent)}
+.hq-filter .f.on[data-pos="QB"]{color:var(--hq-qb);border-color:var(--hq-qb);background:color-mix(in srgb,var(--hq-qb) 12%,transparent)}
+.hq-filter .f.on[data-pos="RB"]{color:var(--hq-rb);border-color:var(--hq-rb);background:color-mix(in srgb,var(--hq-rb) 12%,transparent)}
+.hq-filter .f.on[data-pos="WR"]{color:var(--hq-wr);border-color:var(--hq-wr);background:color-mix(in srgb,var(--hq-wr) 12%,transparent)}
+.hq-filter .f.on[data-pos="TE"]{color:var(--hq-te);border-color:var(--hq-te);background:color-mix(in srgb,var(--hq-te) 12%,transparent)}
+.hq-moves{display:flex;flex-direction:column;gap:var(--cds-gap-sm);margin:0;padding-left:1.2em}
+.hq-moves li{max-width:70ch}
+.hq-moves li::marker{color:var(--hq-gold);font-weight:var(--cds-font-weight-medium)}
+.hq-m{border-radius:var(--cds-radius);padding:8px;margin:-4px;cursor:pointer}
+.hq-m:hover{background:color-mix(in srgb,var(--color-fg-muted) 7%,transparent)}
+.hq-m:focus-visible{outline:2px solid var(--hq-wr)}
+.hq-m .chev{opacity:.5;font-size:.8em}
+.hq-refresh{font:inherit;font-size:var(--cds-font-size-caption);color:var(--color-fg);background:transparent;border:1px solid var(--color-border-line);border-radius:999px;padding:3px 12px;cursor:pointer;white-space:nowrap}
+.hq-refresh:hover{border-color:var(--color-fg-muted)}
+.hq-refresh[disabled]{opacity:.55;cursor:default}
+.hq-lu{display:grid;grid-template-columns:1fr auto 1fr;gap:3px 8px;margin-top:10px;font-size:var(--cds-font-size-caption);align-items:center}
+.hq-lu .mh{color:var(--color-fg);font-weight:var(--cds-font-weight-medium);padding-bottom:3px;border-bottom:1px solid var(--color-border-line);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hq-lu .bh{grid-column:1 / -1;color:var(--color-fg-muted);letter-spacing:.04em;text-transform:uppercase;font-size:.85em;padding-top:6px}
+.hq-lu .slot{width:34px;text-align:center;font-weight:var(--cds-font-weight-medium);font-size:.85em;padding:1px 0;border-radius:6px;letter-spacing:.02em}
+.hq-lu .slot-QB{color:var(--hq-qb);background:color-mix(in srgb,var(--hq-qb) 14%,transparent)}
+.hq-lu .slot-RB{color:var(--hq-rb);background:color-mix(in srgb,var(--hq-rb) 14%,transparent)}
+.hq-lu .slot-WR{color:var(--hq-wr);background:color-mix(in srgb,var(--hq-wr) 14%,transparent)}
+.hq-lu .slot-TE{color:var(--hq-te);background:color-mix(in srgb,var(--hq-te) 14%,transparent)}
+.hq-lu .slot-FLX{color:var(--hq-gold);background:color-mix(in srgb,var(--hq-gold) 14%,transparent)}
+.hq-lu .slot-BN{color:var(--color-fg-muted);background:color-mix(in srgb,var(--color-fg-muted) 10%,transparent)}
+.hq-lu .pc{display:flex;justify-content:space-between;gap:8px;min-width:0;color:var(--color-fg-muted)}
+.hq-lu .pc .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hq-lu .pc .nm .st{color:var(--color-ok);animation:hq-pulse 1.6s ease-in-out infinite}
+.hq-lu .pc .nm .dn{color:var(--color-fg-muted)}
+.hq-lu .pc .nm .inj{font-size:.85em;font-weight:var(--cds-font-weight-medium);color:#d4574e}
+.hq-lu .pc .nm .inj.q{color:var(--hq-te)}
+@keyframes hq-pulse{0%,100%{opacity:1}50%{opacity:.2}}
+@media (prefers-reduced-motion: reduce){.hq-lu .pc .nm .st{animation:none}}
+.hq-lu .pc .vals{white-space:nowrap}
+.hq-lu .pc b{color:var(--color-fg);font-weight:var(--cds-font-weight-medium)}
+.hq-lu .bn .pc{opacity:.75}
+.hq-foot{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
+.hq-method{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
+.hq-method summary{cursor:pointer;font-weight:var(--cds-font-weight-medium)}
+.hq-method p{max-width:75ch}
+</style>
+</head>
+<body>
+<div class="hq">
+<header id="overview">
+<h1>Pee Pee League HQ</h1>
+<p class="hq-lede">Team adamyeet (chubby wubbies) sits at <b data-draw="cell" data-source="standings" data-field="record" data-where="team=adamyeet" class="dash-skeleton">—</b> with the No. <b data-draw="cell" data-source="standings" data-field="value_rank" data-where="team=adamyeet" class="dash-skeleton">—</b> roster in the league by trade value, <b data-draw="cell" data-fmt="pct0" data-source="value-gap" class="dash-skeleton">—</b> clear of the next-best roster, and the No. <b data-draw="cell" data-source="champ-rank" class="dash-skeleton">—</b> championship odds in this dashboard's best-ball simulation.</p>
+</header>
+<nav class="hq-nav" aria-label="Sections">
+<a href="#title-odds">Title odds</a>
+<a href="#thisweek">This week</a>
+<a href="#standings">Standings</a>
+<a href="#moves">Moves</a>
+<a href="#toilet">Toilet bowl</a>
+<a href="#roster">Roster</a>
+<a href="#waivers">Waivers</a>
+</nav>
+<section id="tiles" class="hq-tiles" aria-label="Season snapshot">
+<div class="hq-tile" style="--tile:var(--hq-gold)"><span class="k">Record</span><span class="v dash-skeleton" data-draw="cell" data-source="standings" data-field="record" data-where="team=adamyeet">—</span><span class="s">Best ball, full PPR</span></div>
+<div class="hq-tile" style="--tile:var(--hq-wr)"><span class="k">Expected weekly points</span><span class="v dash-skeleton" data-draw="cell" data-source="odds" data-field="exp_weekly_pts" data-where="team=adamyeet">—</span><span class="s">Model estimate</span></div>
+<div class="hq-tile" style="--tile:var(--hq-rb)"><span class="k">First-round bye</span><span class="v dash-skeleton" data-draw="cell" data-fmt="pct" data-source="odds" data-field="bye_pct" data-where="team=adamyeet">—</span><span class="s">Top-2 seed, player-level sim</span></div>
+<div class="hq-tile" style="--tile:var(--hq-qb)"><span class="k">Win the title</span><span class="v dash-skeleton" data-draw="cell" data-fmt="pct" data-source="odds" data-field="champ_pct" data-where="team=adamyeet">—</span><span class="s">Rank <b data-draw="cell" data-source="champ-rank">—</b> of 10</span></div>
+<div class="hq-tile" style="--tile:var(--hq-te)"><span class="k">Roster value</span><span class="v dash-skeleton" data-draw="cell" data-fmt="int" data-source="standings" data-field="total_value" data-where="team=adamyeet">—</span><span class="s">No. <b data-draw="cell" data-source="standings" data-field="value_rank" data-where="team=adamyeet">—</b> of 10 teams</span></div>
+</section>
+<div class="hq-2col">
+<section id="title-odds" class="hq-card">
+<h2><span class="dot" style="background:var(--hq-qb)"></span>Championship odds</h2>
+<p class="hq-sub">Bars: player-level best-ball simulation (5,000 seasons). Dot: FantasyCalc's simulation, for comparison. Under 1% shows as &lt;1%.</p>
+<div class="hq-chart dash-skeleton" data-draw="odds-chart" data-source="odds standings" data-field="champ_pct">—</div>
+</section>
+<section id="thisweek" class="hq-card">
+<h2><span class="dot" style="background:var(--hq-rb)"></span>This week</h2>
+<p class="hq-sub">Real pairings; pre-week win probabilities from the player-level simulation. Tap a game to open the best-ball lineups. Scored = points on the board at the last snapshot; Proj = projected final, locking in finished games and projecting the rest.</p>
+<div class="hq-mini dash-skeleton" data-draw="thisweek-card" data-source="matchups matchdetail live-proj" data-field="win_a_pct">—</div>
+</section>
+</div>
+<section id="standings" class="hq-card">
+<h2><span class="dot" style="background:var(--hq-wr)"></span>Standings and simulated odds</h2>
+<div class="hq-tablewrap">
+<table data-source="league-table" data-row-key="team">
+<thead><tr>
+<th data-field="team">Team</th>
+<th data-field="record">Record</th>
+<th class="r" data-field="total_value">Roster value</th>
+<th class="r" data-field="exp_weekly_pts">Exp. pts/wk</th>
+<th class="r" data-field="playoffs_pct">Playoffs</th>
+<th class="r" data-field="bye_pct">Bye</th>
+<th class="r" data-field="finals_pct">Finals</th>
+<th class="r" data-field="champ_pct">Title</th>
+</tr></thead>
+<tbody data-draw="standings-body" class="dash-skeleton"></tbody>
+</table>
+</div>
+</section>
+<div class="hq-2col">
+<section id="moves" class="hq-card">
+<h2><span class="dot" style="background:var(--hq-gold)"></span>Moves to make</h2>
+<p class="hq-sub">Written for Week 12. Rewritten at each data refresh; figures are FantasyCalc trade values and update live from the data.</p>
+<ol class="hq-moves">
+<li><b>Claim A.J. Brown.</b> At <b data-draw="cell" data-fmt="int" data-source="waivers" data-field="value" data-where="player=A.J. Brown" class="dash-skeleton">—</b> he is the most valuable free agent in the league by a wide margin and slots in as the WR3 behind St. Brown and Golden. Make room by dropping Chig Okonkwo (<b data-draw="cell" data-fmt="int" data-source="roster" data-field="value" data-where="player=Chig Okonkwo" class="dash-skeleton">—</b>, third tight end) or Deshaun Watson (<b data-draw="cell" data-fmt="int" data-source="roster" data-field="value" data-where="player=Deshaun Watson" class="dash-skeleton">—</b>, third quarterback).</li>
+<li><b>Add Woody Marks as running back cover.</b> He is the top free-agent back at <b data-draw="cell" data-fmt="int" data-source="waivers" data-field="value" data-where="player=Woody Marks" class="dash-skeleton">—</b>, and Jonathan Taylor's Week 13 bye leaves the backfield thin for one week.</li>
+<li><b>Shop Tony Pollard.</b> At <b data-draw="cell" data-fmt="int" data-source="roster" data-field="value" data-where="player=Tony Pollard" class="dash-skeleton">—</b> he is the most valuable benched player in the league, and the three 5-6 teams chasing the last playoff spots are natural buyers.</li>
+<li><b>Chase seeding.</b> The model gives you a <b data-draw="cell" data-fmt="pct" data-source="odds" data-field="bye_pct" data-where="team=adamyeet" class="dash-skeleton">—</b> shot at a first-round bye against <b data-draw="cell" data-fmt="pct" data-source="odds" data-field="bye_pct" data-where="team=ZachWilsonFan5" class="dash-skeleton">—</b> for ZachWilsonFan5 and <b data-draw="cell" data-fmt="pct" data-source="odds" data-field="bye_pct" data-where="team=mvpatel2000" class="dash-skeleton">—</b> for mvpatel2000, so the last three regular-season weeks decide whether you skip a playoff round.</li>
+</ol>
+</section>
+<section id="toilet" class="hq-card">
+<h2><span class="dot" style="background:var(--color-bad)"></span>Toilet bowl: Waffle House watch</h2>
+<p class="hq-sub">The bottom 2 spend 24 hours at Waffle House, one hour off per waffle. Bars: odds under the weeks 15-17 round robin. Dot: if Week 15 alone decided. Teams not shown have clinched safety.</p>
+<div class="hq-mini dash-skeleton" data-draw="toilet-bars" data-source="toilet" data-field="waffle_rr_pct">—</div>
+</section>
+</div>
+<div class="hq-2col">
+<section id="roster" class="hq-card">
+<h2><span class="dot" style="background:var(--hq-te)"></span>adamyeet roster by value</h2>
+<div class="hq-filter" data-for="roster-body" role="group" aria-label="Filter by position">
+<button type="button" class="f on" data-pos="">All</button>
+<button type="button" class="f" data-pos="QB">QB</button>
+<button type="button" class="f" data-pos="RB">RB</button>
+<button type="button" class="f" data-pos="WR">WR</button>
+<button type="button" class="f" data-pos="TE">TE</button>
+</div>
+<div class="hq-tablewrap">
+<table data-source="roster" data-row-key="player">
+<thead><tr>
+<th data-field="player">Player</th>
+<th data-field="pos">Pos</th>
+<th class="r" data-field="pos_rank">Rank</th>
+<th class="r" data-field="value">Value</th>
+<th class="r" data-field="trend_30d">30-day</th>
+</tr></thead>
+<tbody data-draw="roster-body" class="dash-skeleton"></tbody>
+</table>
+</div>
+</section>
+<section id="waivers" class="hq-card">
+<h2><span class="dot" style="background:var(--hq-rb)"></span>Waiver board</h2>
+<div class="hq-filter" data-for="waiver-body" role="group" aria-label="Filter by position">
+<button type="button" class="f on" data-pos="">All</button>
+<button type="button" class="f" data-pos="QB">QB</button>
+<button type="button" class="f" data-pos="RB">RB</button>
+<button type="button" class="f" data-pos="WR">WR</button>
+<button type="button" class="f" data-pos="TE">TE</button>
+</div>
+<div class="hq-tablewrap">
+<table data-source="waivers" data-row-key="player">
+<thead><tr>
+<th data-field="player">Player</th>
+<th data-field="pos">Pos</th>
+<th data-field="pos_rank_label">Rank</th>
+<th class="r" data-field="value">Value</th>
+<th class="r" data-field="trend_30d">30-day</th>
+</tr></thead>
+<tbody data-draw="waiver-body" class="dash-skeleton"></tbody>
+</table>
+</div>
+</section>
+</div>
+<details class="hq-method" id="methodology">
+<summary>How the playoff odds are modeled</summary>
+<p>The odds come from a player-level simulation built on this league's own box scores. Every rostered player's weekly points, weeks 1-11, feed a projection: an exponentially weighted average (the recency half-life and shrinkage are fit per position by walk-forward backtest on weeks 7-11, where the model beat a naive season average at every position) blended 65/35 with Sleeper's weekly projection, which carries matchup context. Each simulated week samples every player's score from a right-skewed Gamma whose variance is fit per position, zeroes players on bye (real NFL schedule) or out injured (live designations mapped to play probabilities), and scores each team with the actual best-ball operator: best QB, two RB, two WR, TE and two flex from that week's samples, so bench depth is priced by the scoring rule itself. Weeks 12-14 use the league's real pairings; the playoff is the league's real format (6 teams, top-2 byes, reseeded, weeks 15-17) with seeding ties broken on points-for carried through the simulation. The toilet bowl simulates both formats the league discussed for the bottom four. 5,000 season simulations. The full model code, backtest numbers and assumptions are attached to the "Simulated playoff odds" source, and FantasyCalc's own simulation is kept in the "Standings & playoff odds" source for comparison.</p>
+</details>
+<p class="hq-foot">Values are FantasyCalc trade values built from millions of real fantasy trades, synced from this Sleeper league. Data files refresh on a weekly schedule; odds of exactly zero show as 0%, odds under 1% as &lt;1%.</p>
+</div>
+<p class="site-foot">Live scores, game states and projections come straight from Sleeper’s public API while the page is open. Win odds, playoff sims and the toilet bowl come from the weekly model run · <a href="data.json">raw data</a>.</p>
+<script>
+window.dashData = {};
+window.DATA = null;
+const dash = (() => {
+  const calcs = {}, drawFns = {}, onDataFns = [];
+  let calcVals = {};
+  const data = (id) => {
+    if (id in window.dashData) return { status: 'ok', data: window.dashData[id], refreshing: false, truncated: false, meta: null };
+    if (calcs[id]) {
+      if (!(id in calcVals)) {
+        try { calcVals[id] = calcs[id].fn(...calcs[id].inputs.map((i) => data(i).data)); }
+        catch (e) { return { status: 'error', data: null, message: String(e) }; }
+      }
+      return { status: 'ok', data: calcVals[id], refreshing: false, truncated: false, meta: null };
+    }
+    return { status: window.DATA ? 'missing' : 'loading', data: [], refreshing: false, truncated: false, meta: null };
+  };
+  const runDraw = (id) => {
+    const fn = drawFns[id]; if (!fn) return;
+    document.querySelectorAll('[data-draw="' + CSS.escape(id) + '"]').forEach((el) => {
+      if (window.DATA) el.classList.remove('dash-skeleton');
+      try { fn(el); } catch (e) { console.error('draw ' + id, e); }
+    });
+  };
+  return {
+    colors: ['#b65c43', '#5a7d9a', '#7a9a5a', '#c9a227', '#8a6e9e', '#4d9fe8', '#1fb3a3', '#e8954d', '#e05c7e', '#8c8c8c'],
+    data,
+    calc: (id, def) => { calcs[id] = def; },
+    loader: () => {},
+    draw: (id, fn) => { if (fn) drawFns[id] = fn; runDraw(id); },
+    redrawAll: () => { calcVals = {}; Object.keys(drawFns).forEach(runDraw); onDataFns.forEach((f) => { try { f(); } catch (e) { console.error(e); } }); },
+    onData: (fn) => { onDataFns.push(fn); try { fn(); } catch (e) { console.error(e); } },
+    refresh: () => {}, params: () => ({}), setParams: () => {}, resetParams: () => {}, setLink: () => {}
+  };
+})();
+</script>
+<script>
+
+dash.calc('value-gap', {
+  title: 'Value lead over next-best roster',
+  description: "adamyeet's total roster value compared with the highest-value other team, as a percentage.",
+  inputs: ['standings'],
+  fn: (standings) => {
+    if (!Array.isArray(standings) || !standings.length) return null;
+    const me = standings.find((r) => r.team === 'adamyeet');
+    const best = Math.max(...standings.filter((r) => r.team !== 'adamyeet').map((r) => Number(r.total_value)));
+    if (!me || !isFinite(best) || best <= 0) return null;
+    return Math.round(((Number(me.total_value) - best) / best) * 100);
+  }
+});
+dash.calc('champ-rank', {
+  title: 'Championship-odds rank',
+  description: "Where adamyeet ranks in simulated championship odds among the 10 teams.",
+  inputs: ['odds'],
+  fn: (odds) => {
+    if (!Array.isArray(odds) || !odds.length) return null;
+    const sorted = odds.slice().sort((a, b) => Number(b.champ_pct) - Number(a.champ_pct));
+    const i = sorted.findIndex((r) => r.team === 'adamyeet');
+    return i < 0 ? null : i + 1;
+  }
+});
+dash.calc('live-proj', {
+  title: 'Live projected best-ball totals',
+  description: 'Each team\'s projected final for this week: actual points for players whose games are final, the larger of actual and projection for games in progress, projections for games not yet started, scored as the best-ball optimum (QB, 2 RB, 2 WR, TE, 2 flex).',
+  inputs: ['matchdetail'],
+  fn: (matchdetail) => {
+    if (!Array.isArray(matchdetail) || !matchdetail.length) return [];
+    const availMap = { Questionable: 0.78, Doubtful: 0.25, Out: 0, IR: 0.05, Sus: 0.5, PUP: 0.05, NA: 0.5 };
+    const val = (r) => (r.state === 'final' ? Number(r.pts) : r.state === 'live' ? Math.max(Number(r.pts), Number(r.proj)) : Number(r.proj) * (availMap[r.inj] ?? 1));
+    const teams = {};
+    for (const r of matchdetail) (teams[r.team] = teams[r.team] || []).push(r);
+    return Object.entries(teams).map(([team, ps]) => {
+      const g = { QB: [], RB: [], WR: [], TE: [] };
+      for (const r of ps) (g[r.pos] || g.WR).push(val(r));
+      for (const k in g) g[k].sort((a, b) => b - a);
+      const flex = g.RB.slice(2).concat(g.WR.slice(2), g.TE.slice(1)).sort((a, b) => b - a);
+      const tot = g.QB.slice(0, 1).concat(g.RB.slice(0, 2), g.WR.slice(0, 2), g.TE.slice(0, 1), flex.slice(0, 2))
+        .reduce((s, v) => s + v, 0);
+      return { team, proj_final: Math.round(tot * 10) / 10 };
+    });
+  }
+});
+dash.calc('league-table', {
+  title: 'Standings with simulated odds',
+  description: 'Each team\'s record and roster value joined with the best-ball simulation odds, ordered by wins then title odds.',
+  inputs: ['standings', 'odds'],
+  fn: (standings, odds) => {
+    if (!Array.isArray(standings) || !standings.length || !Array.isArray(odds) || !odds.length) return [];
+    const by = {};
+    for (const o of odds) by[o.team] = o;
+    const rows = standings.map((s) => {
+      const o = by[s.team] || {};
+      return {
+        team: s.team, record: s.record, wins: Number(s.wins), total_value: Number(s.total_value),
+        exp_weekly_pts: o.exp_weekly_pts ?? null, playoffs_pct: o.playoffs_pct ?? null,
+        bye_pct: o.bye_pct ?? null, finals_pct: o.finals_pct ?? null, champ_pct: o.champ_pct ?? null
+      };
+    });
+    rows.sort((a, b) => (b.wins - a.wins) || (Number(b.champ_pct) - Number(a.champ_pct)));
+    return rows;
+  }
+});
+</script>
+<script>
+
+(function () {
+  const comma = (v) => Number(v).toLocaleString('en-US');
+  const fmt = {
+    raw: (v) => String(v),
+    int: (v) => comma(v),
+    pct: (v) => (Number(v) <= 0 ? '0%' : Number(v) < 1 ? '<1%' : Math.round(Number(v)) + '%'),
+    pct0: (v) => Number(v) + '%',
+    signed: (v) => (Number(v) > 0 ? '+' : '') + comma(v)
+  };
+  const ready = (el, g) => {
+    if (g.status === 'loading') return false;
+    el.classList.remove('dash-skeleton');
+    return g.status === 'ok';
+  };
+  const sortState = {};
+  const posFilter = {};
+  const filtered = (name, rows) => {
+    const f = posFilter[name];
+    return f && Array.isArray(rows) ? rows.filter((r) => r.pos === f) : rows;
+  };
+  const sorted = (name, rows) => {
+    const st = sortState[name];
+    if (!st || !st.key || !Array.isArray(rows)) return rows;
+    const k = st.key;
+    return rows.slice().sort((a, b) => {
+      let va = a[k], vb = b[k];
+      if (k === 'record') { va = parseInt(va, 10); vb = parseInt(vb, 10); }
+      const an = va == null || va === '', bn = vb == null || vb === '';
+      if (an || bn) return an && bn ? 0 : an ? 1 : -1;
+      const na = Number(va), nb = Number(vb);
+      const c = (isFinite(na) && isFinite(nb)) ? na - nb : String(va).localeCompare(String(vb));
+      return st.dir === 'asc' ? c : -c;
+    });
+  };
+  dash.draw('cell', (el) => {
+    const g = dash.data(el.dataset.source);
+    if (!ready(el, g)) { if (g.status !== 'loading') el.textContent = '—'; return; }
+    let v = g.data;
+    if (Array.isArray(v)) {
+      let row = v[0];
+      const where = el.dataset.where;
+      if (where) {
+        const i = where.indexOf('=');
+        const col = decodeURIComponent(where.slice(0, i));
+        const val = decodeURIComponent(where.slice(i + 1));
+        row = v.find((r) => String(r[col]) === val);
+      }
+      v = row ? row[el.dataset.field] : null;
+    }
+    el.textContent = v == null ? '—' : fmt[el.dataset.fmt || 'raw'](v);
+  });
+  const td = (txt, cls) => {
+    const c = document.createElement('td');
+    if (cls) c.className = cls;
+    c.textContent = txt;
+    return c;
+  };
+  const tdNode = (node, cls) => {
+    const c = document.createElement('td');
+    if (cls) c.className = cls;
+    c.append(node);
+    return c;
+  };
+  const posBadge = (pos) => {
+    const s = document.createElement('span');
+    s.className = 'pos pos-' + pos;
+    s.textContent = pos;
+    return s;
+  };
+  const oddsChip = (v) => {
+    const s = document.createElement('span');
+    const n = Number(v);
+    s.className = 'chip ' + (n >= 60 ? 'hi' : n >= 25 ? 'mid' : n < 5 ? 'bad' : 'lo');
+    s.textContent = fmt.pct(v);
+    return s;
+  };
+  const trend = (v) => (v == null ? td('', 'r') : td(fmt.signed(v), 'r ' + (Number(v) >= 0 ? 'up' : 'down')));
+  dash.draw('standings-body', (tb) => {
+    const g = dash.data('league-table');
+    if (!ready(tb, g)) { if (g.status !== 'loading') tb.replaceChildren(); return; }
+    tb.replaceChildren();
+    for (const r of sorted('standings-body', g.data)) {
+      const tr = document.createElement('tr');
+      if (r.team === 'adamyeet') tr.className = 'me';
+      tr.append(td(r.team), td(r.record), td(fmt.int(r.total_value), 'r'),
+        td(r.exp_weekly_pts == null ? '—' : String(r.exp_weekly_pts), 'r'),
+        r.playoffs_pct == null ? td('—', 'r') : tdNode(oddsChip(r.playoffs_pct), 'r'),
+        r.bye_pct == null ? td('—', 'r') : tdNode(oddsChip(r.bye_pct), 'r'),
+        r.finals_pct == null ? td('—', 'r') : tdNode(oddsChip(r.finals_pct), 'r'),
+        r.champ_pct == null ? td('—', 'r') : tdNode(oddsChip(r.champ_pct), 'r'));
+      tb.append(tr);
+    }
+  });
+  dash.draw('roster-body', (tb) => {
+    const g = dash.data('roster');
+    if (!ready(tb, g)) { if (g.status !== 'loading') tb.replaceChildren(); return; }
+    tb.replaceChildren();
+    const rows = filtered('roster-body', sorted('roster-body', g.data.slice().sort((a, b) => Number(b.value) - Number(a.value))));
+    for (const r of rows) {
+      const tr = document.createElement('tr');
+      tr.append(td(r.player), tdNode(posBadge(r.pos)), td(String(r.pos_rank), 'r'), td(fmt.int(r.value), 'r'), trend(r.trend_30d));
+      tb.append(tr);
+    }
+  });
+  dash.draw('waiver-body', (tb) => {
+    const g = dash.data('waivers');
+    if (!ready(tb, g)) { if (g.status !== 'loading') tb.replaceChildren(); return; }
+    tb.replaceChildren();
+    for (const r of filtered('waiver-body', sorted('waiver-body', g.data))) {
+      const tr = document.createElement('tr');
+      tr.append(td(r.player), tdNode(posBadge(r.pos)), td(r.pos_rank_label), td(fmt.int(r.value), 'r'), trend(r.trend_30d));
+      tb.append(tr);
+    }
+  });
+  const openGames = new Set();
+
+  dash.draw('thisweek-card', (el) => {
+    const g = dash.data('matchups');
+    const det = dash.data('matchdetail');
+    const lpg = dash.data('live-proj');
+    const lp = lpg.status === 'ok' && Array.isArray(lpg.data) ? lpg.data : [];
+    if (!ready(el, g)) { if (g.status !== 'loading') el.replaceChildren(); return; }
+    el.replaceChildren();
+    const players = det.status === 'ok' ? det.data : [];
+    const inj = (pl) => ({ Questionable: 'Q', Doubtful: 'D', Out: 'O', IR: 'IR', Sus: 'SUS', PUP: 'PUP', NA: 'NA' })[pl.inj] || '';
+    const avail = (pl) => ({ Questionable: 0.78, Doubtful: 0.25, Out: 0, IR: 0.05, Sus: 0.5, PUP: 0.05, NA: 0.5 })[pl.inj] ?? 1;
+    const val = (pl) => (pl.state === 'final' ? Number(pl.pts) : pl.state === 'live' ? Math.max(Number(pl.pts), Number(pl.proj)) : Math.round(Number(pl.proj) * avail(pl) * 10) / 10);
+    const lpv = (team, fb) => { const row = lp.find((x) => x.team === team); return row ? row.proj_final : fb; };
+    const mine = g.data.filter((r) => r.team_a === 'adamyeet' || r.team_b === 'adamyeet');
+    const rows = mine.concat(g.data.filter((r) => !mine.includes(r)));
+    const box = d3.select(el).append('div').style('display', 'flex').style('flex-direction', 'column').style('gap', '10px');
+    const asof = g.data[0] && g.data[0].asof;
+    const topbar = box.append('div').style('display', 'flex').style('justify-content', 'space-between')
+      .style('align-items', 'center').style('gap', '8px');
+    const fmtT = (d) => d.toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' });
+    const lv = window.__live || {};
+    topbar.append('span').attr('class', 'hq-sub')
+      .text(lv.err ? 'Live refresh failed \u2014 showing last good data'
+        : lv.at ? 'Live from Sleeper \u00B7 ' + fmtT(lv.at)
+        : asof ? 'Points snapshot: ' + fmtT(new Date(asof)) : '');
+    topbar.append('button').attr('class', 'hq-refresh').attr('type', 'button')
+      .attr('disabled', lv.pulling ? '' : null)
+      .text(lv.pulling ? 'Refreshing\u2026' : '\u21BB Refresh')
+      .on('click', (ev) => { ev.stopPropagation(); if (window.pullLive) window.pullLive(); });
+    rows.forEach((r, idx) => {
+      const isMine = mine.includes(r);
+      const big = idx === 0 && isMine;
+      const key = r.team_a + '|' + r.team_b;
+      const wrap = box.append('div').attr('class', 'hq-m').attr('tabindex', 0).attr('role', 'button')
+        .attr('aria-expanded', openGames.has(key) ? 'true' : 'false');
+      const head = wrap.append('div').style('display', 'flex').style('justify-content', 'space-between').style('gap', '8px')
+        .style('font-size', big ? 'var(--cds-font-size-body)' : 'var(--cds-font-size-caption)')
+        .style('font-weight', isMine ? 'var(--cds-font-weight-medium)' : 'normal')
+        .style('color', isMine ? 'var(--color-fg)' : 'var(--color-fg-muted)');
+      head.append('span').text(r.team_a + ' ' + fmt.pct(r.win_a_pct));
+      const right = head.append('span');
+      right.append('span').text(r.team_b + ' ' + fmt.pct(r.win_b_pct) + ' ');
+      right.append('span').attr('class', 'chev').text(openGames.has(key) ? '▾' : '▸');
+      const bar = wrap.append('div').style('display', 'flex').style('height', big ? '13px' : '7px')
+        .style('border-radius', '999px').style('overflow', 'hidden').style('margin-top', '4px');
+      const aMine = r.team_a === 'adamyeet';
+      bar.append('div').style('width', r.win_a_pct + '%')
+        .style('background', isMine ? (aMine ? 'var(--hq-gold)' : 'var(--cds-chart-muted)') : dash.colors[0]);
+      bar.append('div').style('flex', '1')
+        .style('background', isMine ? (aMine ? 'var(--cds-chart-muted)' : 'var(--hq-gold)') : 'var(--cds-chart-muted)');
+      const sub = wrap.append('div').style('display', 'flex').style('justify-content', 'space-between').style('gap', '8px')
+        .style('margin-top', '3px').style('font-size', 'var(--cds-font-size-caption)').style('color', 'var(--color-fg-muted)');
+      sub.append('span').text('Scored ' + r.live_a + ' · Proj ' + lpv(r.team_a, r.proj_a));
+      sub.append('span').text('Scored ' + r.live_b + ' · Proj ' + lpv(r.team_b, r.proj_b));
+      if (openGames.has(key) && players.length) {
+        const lineup = (team) => {
+          const ps = players.filter((pl) => pl.team === team).sort((a, b) => val(b) - val(a));
+          const grp = { QB: [], RB: [], WR: [], TE: [] };
+          for (const pl of ps) (grp[pl.pos] || grp.WR).push(pl);
+          const starters = [];
+          const used = new Set();
+          const take = (arr, n, slot) => arr.slice(0, n).forEach((pl) => { starters.push([slot, pl]); used.add(pl); });
+          take(grp.QB, 1, 'QB'); take(grp.RB, 2, 'RB'); take(grp.WR, 2, 'WR'); take(grp.TE, 1, 'TE');
+          const flex = ps.filter((pl) => !used.has(pl) && (pl.pos === 'RB' || pl.pos === 'WR' || pl.pos === 'TE'));
+          take(flex, 2, 'FLX');
+          const bench = ps.filter((pl) => !used.has(pl));
+          while (starters.length < 8) starters.push([['QB','RB','RB','WR','WR','TE','FLX','FLX'][starters.length], null]);
+          return { starters, bench };
+        };
+        const A = lineup(r.team_a), B = lineup(r.team_b);
+        const mx = wrap.append('div').attr('class', 'hq-lu');
+        mx.append('div').attr('class', 'mh').text(r.team_a);
+        mx.append('div');
+        mx.append('div').attr('class', 'mh').style('text-align', 'right').text(r.team_b);
+        const cell = (host, pl, alignRight) => {
+          const c = host.append('div').attr('class', 'pc');
+          if (!pl) { c.append('span').attr('class', 'nm').text('—'); return; }
+          const nm = c.append('span').attr('class', 'nm');
+          if (alignRight) c.style('flex-direction', 'row-reverse');
+          nm.text(pl.player + (pl.nfl ? ' · ' + pl.nfl : ''));
+          if (pl.state === 'live') nm.append('span').attr('class', 'st').text(' ●');
+          if (pl.state === 'final') nm.append('span').attr('class', 'dn').text(' ✓');
+          const itag = inj(pl);
+          if (itag) nm.append('span').attr('class', 'inj' + (itag === 'Q' ? ' q' : '')).text(' ' + itag);
+          const v = c.append('span').attr('class', 'vals');
+          if (pl.state !== 'upcoming') { v.append('b').text(pl.pts); v.append('span').text(' / ' + pl.proj); }
+          else v.append('span').text(val(pl));
+        };
+        const slotRows = (slotsA, slotsB, benchRow) => {
+          const n = Math.max(slotsA.length, slotsB.length);
+          for (let i = 0; i < n; i++) {
+            const a = slotsA[i], b = slotsB[i];
+            const left = mx.append('div'); if (benchRow) left.attr('class', 'bn');
+            cell(left, a ? (benchRow ? a : a[1]) : null, false);
+            mx.append('div').attr('class', 'slot slot-' + (benchRow ? 'BN' : (a ? a[0] : b[0]))).text(benchRow ? 'BN' : (a ? a[0] : b[0]));
+            const right = mx.append('div'); if (benchRow) right.attr('class', 'bn');
+            cell(right, b ? (benchRow ? b : b[1]) : null, true);
+          }
+        };
+        slotRows(A.starters, B.starters, false);
+        mx.append('div').attr('class', 'bh').text('Bench');
+        slotRows(A.bench, B.bench, true);
+        mx.append('div').style('grid-column', '1 / -1').style('color', 'var(--color-fg-muted)').style('padding-top', '4px')
+          .text('Bold = scored / projected · plain = projected · ● = in a live game · ✓ = game finished · Q/D/O/IR = injury status (projections scaled to match: Q ×0.78, D ×0.25, Out/IR ≈0). Slots filled best-ball optimally.');
+      }
+      const toggle = () => {
+        if (openGames.has(key)) openGames.delete(key); else openGames.add(key);
+        dash.draw('thisweek-card');
+      };
+      wrap.on('click', toggle);
+      wrap.on('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); toggle(); } });
+    });
+    box.append('p').attr('class', 'hq-sub').style('margin-top', '2px')
+      .text('Win odds are from the pre-week simulation; scores, game states and projections refresh straight from Sleeper while games are on.');
+  });
+  dash.draw('toilet-bars', (el) => {
+    const g = dash.data('toilet');
+    if (!ready(el, g)) { if (g.status !== 'loading') el.replaceChildren(); return; }
+    el.replaceChildren();
+    const risk = g.data.filter((r) => Number(r.miss_playoffs_pct) > 0)
+      .sort((a, b) => Number(b.waffle_rr_pct) - Number(a.waffle_rr_pct));
+    const safe = g.data.filter((r) => Number(r.miss_playoffs_pct) <= 0).map((r) => r.team);
+    const W = el.clientWidth || 440;
+    const rowH = 26;
+    const m = { t: 4, r: 48, b: 4, l: 110 };
+    const maxV = Math.max(...risk.map((r) => Number(r.waffle_rr_pct)), ...risk.map((r) => Number(r.waffle_wk15_pct)), 1);
+    const x = (v) => (Number(v) / (maxV * 1.15)) * Math.max(60, W - m.l - m.r);
+    const H = m.t + m.b + risk.length * rowH;
+    const svg = d3.select(el).append('svg').attr('width', W).attr('height', H).attr('role', 'img')
+      .attr('aria-label', 'Horizontal bar chart of Waffle House punishment odds for each at-risk team, with the week-15-only format shown as dots');
+    const row = svg.selectAll('g').data(risk).join('g')
+      .attr('transform', (r, i) => 'translate(' + m.l + ',' + (m.t + i * rowH) + ')');
+    row.append('text').attr('x', -8).attr('y', rowH / 2).attr('dy', '0.32em').attr('text-anchor', 'end')
+      .style('fill', 'var(--cds-text-secondary)').style('font-size', 'var(--cds-font-size-caption)')
+      .text((r) => r.team);
+    row.append('rect').attr('x', 0).attr('y', 6).attr('height', rowH - 12).attr('rx', 2)
+      .attr('width', (r) => Math.max(2, x(r.waffle_rr_pct)))
+      .style('fill', 'var(--cds-chart-status-critical)').style('opacity', 0.85);
+    row.append('circle')
+      .attr('cx', (r) => x(r.waffle_wk15_pct)).attr('cy', rowH / 2).attr('r', 3.5)
+      .style('fill', 'var(--color-fg)').style('stroke', 'var(--color-bg)').style('stroke-width', 1.5);
+    row.append('text').attr('x', (r) => Math.max(x(r.waffle_rr_pct), x(r.waffle_wk15_pct)) + 8)
+      .attr('y', rowH / 2).attr('dy', '0.32em')
+      .style('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)')
+      .text((r) => fmt.pct(r.waffle_rr_pct));
+    if (safe.length) {
+      d3.select(el).append('p').attr('class', 'hq-sub').style('margin-top', '8px')
+        .text('Clinched safe: ' + safe.join(', '));
+    }
+  });
+  dash.draw('odds-chart', (el) => {
+    const g = dash.data('odds');
+    const fc = dash.data('standings');
+    if (!ready(el, g)) { if (g.status !== 'loading') el.replaceChildren(); return; }
+    el.replaceChildren();
+    const fcBy = {};
+    if (fc.status === 'ok') for (const r of fc.data) fcBy[r.team] = Number(r.champ_pct);
+    const rows = g.data.slice().sort((a, b) => Number(b.champ_pct) - Number(a.champ_pct));
+    const maxV = Math.max(...rows.map((r) => Number(r.champ_pct)), ...Object.values(fcBy), 1);
+    const W = el.clientWidth || 440;
+    const rowH = 27;
+    const m = { t: 4, r: 48, b: 4, l: 110 };
+    const x = (v) => (Number(v) / (maxV * 1.15)) * Math.max(60, W - m.l - m.r);
+    const H = m.t + m.b + rows.length * rowH;
+    const svg = d3.select(el).append('svg').attr('width', W).attr('height', H).attr('role', 'img')
+      .attr('aria-label', 'Horizontal bar chart of simulated championship odds for each of the ten teams, with FantasyCalc\'s odds shown as dots');
+    const row = svg.selectAll('g').data(rows).join('g')
+      .attr('transform', (r, i) => 'translate(' + m.l + ',' + (m.t + i * rowH) + ')');
+    row.append('text').attr('x', -8).attr('y', rowH / 2).attr('dy', '0.32em').attr('text-anchor', 'end')
+      .style('fill', 'var(--cds-text-secondary)').style('font-size', 'var(--cds-font-size-caption)')
+      .style('font-weight', (r) => (r.team === 'adamyeet' ? '600' : null))
+      .text((r) => r.team);
+    row.append('rect').attr('x', 0).attr('y', 6).attr('height', rowH - 12).attr('rx', 2)
+      .attr('width', (r) => Math.max(2, x(r.champ_pct)))
+      .style('fill', (r) => (r.team === 'adamyeet' ? dash.colors[1] : dash.colors[0]));
+    row.filter((r) => fcBy[r.team] != null).append('circle')
+      .attr('cx', (r) => x(fcBy[r.team])).attr('cy', rowH / 2).attr('r', 3.5)
+      .style('fill', 'var(--color-fg)').style('stroke', 'var(--color-bg)').style('stroke-width', 1.5);
+    row.append('text').attr('x', (r) => Math.max(x(r.champ_pct), fcBy[r.team] != null ? x(fcBy[r.team]) : 0) + 8)
+      .attr('y', rowH / 2).attr('dy', '0.32em')
+      .style('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)')
+      .text((r) => fmt.pct(r.champ_pct));
+  });
+  document.querySelectorAll('.hq-filter').forEach((grp) => {
+    const name = grp.dataset.for;
+    grp.querySelectorAll('button.f').forEach((btn) => {
+      btn.setAttribute('aria-pressed', btn.classList.contains('on') ? 'true' : 'false');
+      btn.addEventListener('click', () => {
+        posFilter[name] = btn.dataset.pos || null;
+        grp.querySelectorAll('.f').forEach((b) => {
+          b.classList.toggle('on', b === btn);
+          b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
+        });
+        dash.draw(name);
+      });
+    });
+  });
+  document.querySelectorAll('.hq table').forEach((tbl) => {
+    const body = tbl.querySelector('tbody[data-draw]');
+    if (!body) return;
+    const name = body.dataset.draw;
+    tbl.querySelectorAll('th[data-field]').forEach((th) => {
+      th.tabIndex = 0;
+      const act = () => {
+        const k = th.dataset.field;
+        const st = sortState[name] || {};
+        const dir = (st.key === k && st.dir === 'desc') ? 'asc' : 'desc';
+        sortState[name] = { key: k, dir };
+        tbl.querySelectorAll('th[data-field]').forEach((h2) => h2.removeAttribute('aria-sort'));
+        th.setAttribute('aria-sort', dir === 'asc' ? 'ascending' : 'descending');
+        dash.draw(name);
+      };
+      th.addEventListener('click', act);
+      th.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act(); } });
+    });
+  });
+})();
+</script>
+<script>
+(() => {
+  window.__live = { at: null, err: false, pulling: false };
+  let timer = 0;
+  const AVAIL = { Questionable: 0.78, Doubtful: 0.25, Out: 0, IR: 0.05, Sus: 0.5, PUP: 0.05, NA: 0.5 };
+  const bb = (ps, f) => {
+    const g = { QB: [], RB: [], WR: [], TE: [] };
+    ps.forEach((p) => (g[p.pos] || g.WR).push(f(p)));
+    for (const k in g) g[k].sort((a, b) => b - a);
+    const fx = g.RB.slice(2).concat(g.WR.slice(2), g.TE.slice(1)).sort((a, b) => b - a);
+    return Math.round(g.QB.slice(0, 1).concat(g.RB.slice(0, 2), g.WR.slice(0, 2), g.TE.slice(0, 1), fx.slice(0, 2))
+      .reduce((s, v) => s + v, 0) * 10) / 10;
+  };
+  async function pullLive() {
+    const L = window.__live;
+    if (L.pulling || !window.DATA) return;
+    L.pulling = true; dash.draw('thisweek-card');
+    try {
+      const wk = DATA.week;
+      const [mr, sr, pr] = await Promise.all([
+        fetch('https://api.sleeper.app/v1/league/' + DATA.leagueId + '/matchups/' + wk),
+        fetch('https://api.sleeper.app/schedule/nfl/regular/2026'),
+        fetch('https://api.sleeper.app/projections/nfl/2026/' + wk + '?season_type=regular&position[]=QB&position[]=RB&position[]=WR&position[]=TE&order_by=ppr').catch(() => null)
+      ]);
+      if (!mr.ok || !sr.ok) throw new Error('fetch failed');
+      const mj = await mr.json(), sj = await sr.json();
+      let pj = null; try { if (pr && pr.ok) pj = await pr.json(); } catch (e) {}
+      const pts = {};
+      mj.forEach((m) => { const pp = m.players_points || {}; for (const k in pp) pts[k] = pp[k]; });
+      const state = {};
+      sj.forEach((g) => {
+        if (g.week !== wk) return;
+        const st = g.status === 'complete' ? 'final' : g.status === 'in_game' ? 'live' : 'upcoming';
+        state[g.home] = st; state[g.away] = st;
+      });
+      const slp = {};
+      if (pj) (Array.isArray(pj) ? pj : Object.values(pj)).forEach((it) => {
+        const pid = it && (it.player_id != null ? it.player_id : it.player);
+        const v = it && it.stats && it.stats.pts_ppr;
+        if (pid != null && v != null) slp[String(pid)] = Number(v);
+      });
+      const players = DATA.players.map((p) => {
+        const q = Object.assign({}, p);
+        if (p.pid in pts) q.pts = Math.round(pts[p.pid] * 100) / 100;
+        if (p.nfl && state[p.nfl]) q.state = state[p.nfl];
+        if (pj && q.state !== 'final') {
+          const sl = p.pid in slp ? slp[p.pid] : 0;
+          q.proj = Math.max(0, Math.round((p.proj + 0.35 * (sl - p.slp)) * 10) / 10);
+        }
+        return q;
+      });
+      const val = (p) => (p.state === 'final' ? Number(p.pts) : p.state === 'live' ? Math.max(Number(p.pts), Number(p.proj)) : Number(p.proj) * (AVAIL[p.inj] != null ? AVAIL[p.inj] : 1));
+      window.dashData.matchdetail = players;
+      window.dashData.matchups = DATA.matchups.map((r) => {
+        const q = Object.assign({}, r);
+        const A = players.filter((p) => p.team === r.team_a), B = players.filter((p) => p.team === r.team_b);
+        q.live_a = bb(A, (p) => (p.state === 'upcoming' ? 0 : Number(p.pts)));
+        q.live_b = bb(B, (p) => (p.state === 'upcoming' ? 0 : Number(p.pts)));
+        return q;
+      });
+      L.at = new Date(); L.err = false;
+      dash.redrawAll();
+      const anyLive = players.some((p) => p.state === 'live');
+      clearTimeout(timer);
+      timer = setTimeout(pullLive, anyLive ? 60 * 1000 : 10 * 60 * 1000);
+    } catch (e) { L.err = true; }
+    L.pulling = false;
+    dash.draw('thisweek-card');
+  }
+  window.pullLive = pullLive;
+  (async () => {
+    try {
+      const d = await fetch('data.json', { cache: 'no-store' }).then((r) => r.json());
+      window.DATA = d;
+      window.dashData = { standings: d.standings, roster: d.roster, waivers: d.waivers, odds: d.odds,
+        matchups: d.matchups, matchdetail: d.players, toilet: d.toilet };
+      dash.redrawAll();
+      pullLive();
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && window.__live.at && Date.now() - window.__live.at > 90 * 1000) pullLive();
+      });
+    } catch (e) {
+      document.querySelectorAll('.dash-skeleton').forEach((el) => { el.textContent = 'failed to load data'; });
+    }
+  })();
+})();
+</script>
+</body>
+</html>
