@@ -102,6 +102,21 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 .hq-av{width:20px;height:20px;border-radius:50%;background:var(--cds-chart-muted);object-fit:cover;flex:none}
 .hq-av-s{width:17px;height:17px;border-radius:50%;background:var(--cds-chart-muted);object-fit:cover;vertical-align:-4px;margin-right:6px}
 .hq-tiles-wk{margin-top:10px}
+.hq-tabbar{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 18px;border-bottom:1px solid var(--color-border-line);padding-bottom:10px}
+.hq-tabbar button{font:inherit;font-size:var(--cds-font-size-body);color:var(--color-fg-muted);background:transparent;border:1px solid transparent;border-radius:999px;padding:6px 14px;cursor:pointer}
+.hq-tabbar button:hover{color:var(--color-fg)}
+.hq-tabbar button.on{color:var(--color-fg);background:var(--color-panel);border-color:var(--color-border-line);font-weight:var(--cds-font-weight-medium)}
+.hq-tabv > * + *{margin-top:var(--cds-gap-lg)}
+.hq-tr{border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:12px 14px;margin-top:12px}
+.hq-tr .trh{display:flex;justify-content:space-between;gap:8px;font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);margin-bottom:8px}
+.hq-tr .trg{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px;font-size:var(--cds-font-size-caption)}
+.hq-tr .trg .tm{font-weight:var(--cds-font-weight-medium);color:var(--color-fg);padding-bottom:2px}
+.hq-tr .trg .as{display:flex;justify-content:space-between;gap:8px;color:var(--color-fg-muted)}
+.hq-tr .trg .as b{color:var(--color-fg);font-weight:var(--cds-font-weight-medium)}
+.hq-tr .trg .tot{border-top:1px solid var(--color-border-line);margin-top:4px;padding-top:3px}
+.hq-tr .trn{margin:10px 0 0;font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
+.hq-tr .trn b{color:var(--color-fg)}
+.hq-lu .pc .nm .gm{display:block;font-size:.84em;color:var(--color-fg-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hq-teamsel{margin:8px 0 2px}
 .hq-teamsel select{font:inherit;font-size:var(--cds-font-size-caption);color:var(--color-fg);background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:8px;padding:4px 8px}
 .hq-split{grid-template-columns:5fr 6fr}
@@ -146,16 +161,14 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 <div class="hq-viewas" id="view-as" role="group" aria-label="View dashboard as"></div>
 <p class="hq-lede dash-skeleton" data-draw="hero-lede" data-source="standings odds">—</p>
 </header>
-<nav class="hq-nav" aria-label="Sections">
-<a href="#roster">Roster</a>
-<a href="#matchups">Matchups</a>
-<a href="#numbers">Numbers</a>
-<a href="#standings">Standings</a>
-<a href="#title-odds">Title odds</a>
-<a href="#toilet">Toilet bowl</a>
-<a href="#moves">Moves</a>
-<a href="#waivers">Waivers</a>
+<nav class="hq-tabbar" id="tabbar" aria-label="Tabs">
+<button type="button" data-tab="overview" class="on">Overview</button>
+<button type="button" data-tab="matchups">Matchups</button>
+<button type="button" data-tab="standings">Standings &amp; Odds</button>
+<button type="button" data-tab="warroom">War Room</button>
+<button type="button" data-tab="trades">Trades</button>
 </nav>
+<div class="hq-tabv" data-tab="overview">
 <section id="tiles" class="hq-tiles" aria-label="Season snapshot">
 <div class="hq-tile" style="--tile:var(--hq-gold)"><span class="k">Record</span><span class="v dash-skeleton" data-draw="cell" data-source="standings" data-field="record" data-where="team=adamyeet">—</span><span class="s">Best ball, full PPR</span></div>
 <div class="hq-tile" style="--tile:var(--hq-wr)"><span class="k">Expected weekly points</span><span class="v dash-skeleton" data-draw="cell" data-source="odds" data-field="exp_weekly_pts" data-where="team=adamyeet">—</span><span class="s">Model estimate</span></div>
@@ -163,7 +176,6 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 <div class="hq-tile" style="--tile:var(--hq-qb)"><span class="k">Win the title</span><span class="v dash-skeleton" data-draw="cell" data-fmt="pct" data-source="odds" data-field="champ_pct" data-where="team=adamyeet">—</span><span class="s">Rank <b data-draw="cell" data-source="champ-rank">—</b> of 10</span></div>
 <div class="hq-tile" style="--tile:var(--hq-te)"><span class="k">Roster value</span><span class="v dash-skeleton" data-draw="cell" data-fmt="int" data-source="standings" data-field="total_value" data-where="team=adamyeet">—</span><span class="s">No. <b data-draw="cell" data-source="standings" data-field="value_rank" data-where="team=adamyeet">—</b> of 10 teams</span></div>
 </section>
-
 <div class="hq-2col hq-split">
 <section id="roster" class="hq-card">
 <h2><span class="dot" style="background:var(--hq-te)"></span>Rosters by value</h2>
@@ -188,16 +200,20 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 </table>
 </div>
 </section>
+<section id="numbers" class="hq-card">
+<h2><span class="dot" style="background:var(--hq-wr)"></span>By the numbers</h2>
+<div class="hq-tiles hq-tiles-wk dash-skeleton" data-draw="week-numbers" data-source="matchdetail values matchups live-proj standings">—</div>
+</section>
+</div>
+</div>
+<div class="hq-tabv" data-tab="matchups" hidden>
 <section id="matchups" class="hq-card">
 <h2><span class="dot" style="background:var(--hq-rb)"></span>Matchups</h2>
 <p class="hq-sub">Tap a game. The odds move while the games do.</p>
 <div class="hq-mini dash-skeleton" data-draw="thisweek-card" data-source="matchups matchdetail live-proj" data-field="win_a_pct">—</div>
 </section>
 </div>
-<section id="numbers" class="hq-card">
-<h2><span class="dot" style="background:var(--hq-wr)"></span>By the numbers</h2>
-<div class="hq-tiles hq-tiles-wk dash-skeleton" data-draw="week-numbers" data-source="matchdetail values matchups live-proj standings">—</div>
-</section>
+<div class="hq-tabv" data-tab="standings" hidden>
 <section id="standings" class="hq-card">
 <h2><span class="dot" style="background:var(--hq-wr)"></span>Standings and simulated odds</h2>
 <div class="hq-tablewrap">
@@ -228,6 +244,8 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 <div class="hq-mini dash-skeleton" data-draw="toilet-bars" data-source="toilet" data-field="waffle_rr_pct">—</div>
 </section>
 </div>
+</div>
+<div class="hq-tabv" data-tab="warroom" hidden>
 <div class="hq-2col">
 <section id="moves" class="hq-card">
 <h2><span class="dot" style="background:var(--hq-gold)"></span>Moves to make</h2>
@@ -258,6 +276,22 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 </div>
 </section>
 </div>
+</div>
+<div class="hq-tabv" data-tab="trades" hidden>
+<section id="trades" class="hq-card">
+<h2><span class="dot" style="background:var(--hq-rb)"></span>The trade ledger</h2>
+<p class="hq-sub">Every deal this league has made, graded at today’s values. No appeals.</p>
+<div class="dash-skeleton" data-draw="trade-ledger" data-source="trades avatars">—</div>
+</section>
+</div>
+
+
+
+
+
+
+
+
 
 
 <details class="hq-method" id="methodology">
@@ -571,6 +605,64 @@ dash.calc('league-table', {
       el.append(dv);
     }
   });
+  dash.draw('trade-ledger', (el) => {
+    const g = dash.data('trades');
+    if (g.status !== 'ok' || !Array.isArray(g.data)) { el.textContent = '—'; return; }
+    el.replaceChildren();
+    if (!g.data.length) { el.textContent = 'No trades yet. Cowards.'; return; }
+    for (const t of g.data) {
+      const card = document.createElement('div');
+      card.className = 'hq-tr';
+      const trh = document.createElement('div');
+      trh.className = 'trh';
+      const when = document.createElement('span');
+      when.textContent = 'Week ' + t.week + ' · ' + new Date(t.ts).toLocaleDateString([], { month: 'short', day: 'numeric' });
+      trh.append(when);
+      card.append(trh);
+      const grid = document.createElement('div');
+      grid.className = 'trg';
+      for (const side of t.sides) {
+        const col = document.createElement('div');
+        const tm = document.createElement('div');
+        tm.className = 'tm';
+        const ai = avatarImg(side.team, 'hq-av-s');
+        if (ai) tm.append(ai);
+        tm.append(side.team + ' got');
+        col.append(tm);
+        let tot = 0;
+        for (const a of side.got) {
+          tot += Number(a.v) || 0;
+          const asr = document.createElement('div');
+          asr.className = 'as';
+          const nm = document.createElement('span');
+          nm.textContent = a.player + ' · ' + a.pos;
+          const vb = document.createElement('b');
+          vb.textContent = fmt.int(a.v);
+          asr.append(nm, vb);
+          col.append(asr);
+        }
+        const totr = document.createElement('div');
+        totr.className = 'as tot';
+        const tl2 = document.createElement('span'); tl2.textContent = 'total';
+        const tb2 = document.createElement('b'); tb2.textContent = fmt.int(tot);
+        totr.append(tl2, tb2);
+        col.append(totr);
+        grid.append(col);
+      }
+      card.append(grid);
+      if (t.note) {
+        const nt = document.createElement('p');
+        nt.className = 'trn';
+        String(t.note).split('**').forEach((s, i) => {
+          if (!s) return;
+          if (i % 2) { const bb = document.createElement('b'); bb.textContent = s; nt.append(bb); }
+          else nt.append(s);
+        });
+        card.append(nt);
+      }
+      el.append(card);
+    }
+  });
   dash.draw('moves-note', (el) => {
     const team = window.viewTeam || 'adamyeet';
     el.textContent = 'This week\u2019s business for ' + team + '.';
@@ -750,16 +842,32 @@ dash.calc('league-table', {
         mx.append('div').attr('class', 'mh').text(r.team_a);
         mx.append('div');
         mx.append('div').attr('class', 'mh').style('text-align', 'right').text(r.team_b);
+        const games = dash.data('games');
+        const gmap = games.status === 'ok' && games.data ? games.data : {};
+        const liveInfo = (window.__live && window.__live.info) || {};
+        const gameLine = (pl) => {
+          if (!pl.nfl) return 'no team';
+          const gg = gmap[pl.nfl];
+          if (!gg) return pl.nfl + ' · bye';
+          const opp = pl.nfl + ' ' + (gg.opp || '');
+          if (pl.state === 'final') return opp + ' · Final';
+          if (pl.state === 'live') return opp + ' · ' + (liveInfo[pl.nfl] || 'Live');
+          const kd = gg.kick ? new Date(gg.kick) : null;
+          return opp + (kd ? ' · ' + kd.toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' }) : '');
+        };
         const cell = (host, pl, alignRight) => {
           const c = host.append('div').attr('class', 'pc');
           if (!pl) { c.append('span').attr('class', 'nm').text('—'); return; }
           const nm = c.append('span').attr('class', 'nm');
           if (alignRight) c.style('flex-direction', 'row-reverse');
-          nm.text(pl.player + (pl.nfl ? ' · ' + pl.nfl : ''));
+          nm.text(pl.player);
           if (pl.state === 'live') nm.append('span').attr('class', 'st').text(' ●');
           if (pl.state === 'final') nm.append('span').attr('class', 'dn').text(' ✓');
           const itag = inj(pl);
           if (itag) nm.append('span').attr('class', 'inj' + (itag === 'Q' ? ' q' : '')).text(' ' + itag);
+          const gl = nm.append('span').attr('class', 'gm');
+          if (alignRight) gl.style('text-align', 'right');
+          gl.text(gameLine(pl));
           const v = c.append('span').attr('class', 'vals');
           if (pl.state !== 'upcoming') { v.append('b').text(pl.pts); v.append('span').text(' / ' + pl.proj); }
           else v.append('span').text(val(pl));
@@ -921,11 +1029,11 @@ dash.calc('league-table', {
       let pj = null; try { if (pr && pr.ok) pj = await pr.json(); } catch (e) {}
       const pts = {};
       mj.forEach((m) => { const pp = m.players_points || {}; for (const k in pp) pts[k] = pp[k]; });
-      const state = {}, frac = {};
+      const state = {}, frac = {}, info = {};
       sj.forEach((g) => {
         const md = g.metadata || {};
         const teams = [md.home_team, md.away_team].filter(Boolean);
-        let st = 'upcoming', f = 0;
+        let st = 'upcoming', f = 0, inf = '';
         if (g.status === 'complete' || md.is_over) { st = 'final'; f = 1; }
         else if (g.status === 'in_game' || md.is_in_progress) {
           st = 'live';
@@ -936,9 +1044,13 @@ dash.calc('league-table', {
             mm = Number(parts[0]) || 0; ss = Number(parts[1]) || 0;
           }
           f = qn >= 5 ? 0.95 : Math.min(0.99, Math.max(0, ((qn - 1) * 15 + (15 - mm - ss / 60)) / 60));
+          inf = (qn >= 5 ? 'OT' : 'Q' + qn) + (md.time_remaining ? ' ' + md.time_remaining : '');
+          const hs = md.home_score, aw = md.away_score;
+          if (hs != null && aw != null) inf += ' · ' + md.away_team + ' ' + aw + '–' + hs + ' ' + md.home_team;
         }
-        teams.forEach((t) => { state[t] = st; frac[t] = f; });
+        teams.forEach((t) => { state[t] = st; frac[t] = f; if (inf) info[t] = inf; });
       });
+      window.__live.info = info;
       const slp = {};
       if (pj) (Array.isArray(pj) ? pj : Object.values(pj)).forEach((it) => {
         const pid = it && (it.player_id != null ? it.player_id : it.player);
@@ -984,7 +1096,7 @@ dash.calc('league-table', {
       const d = await fetch('data.json', { cache: 'no-store' }).then((r) => r.json());
       window.DATA = d;
       window.dashData = { standings: d.standings, values: d.values, waivers: d.waivers, odds: d.odds,
-        matchups: d.matchups, matchdetail: d.players, toilet: d.toilet, avatars: d.avatars || {}, moves: d.moves || {} };
+        matchups: d.matchups, matchdetail: d.players, toilet: d.toilet, avatars: d.avatars || {}, moves: d.moves || {}, trades: d.trades || [], games: d.games || {} };
       let initTeam = d.me;
       try {
         const qp = new URLSearchParams(location.search).get('as');
@@ -1030,7 +1142,12 @@ dash.calc('league-table', {
           btn.addEventListener('click', (ev) => {
             ev.stopPropagation();
             window.viewTeam = t;
-            try { history.replaceState(null, '', location.pathname + (t === d.me ? '' : '?as=' + encodeURIComponent(t)) + location.hash); } catch (e) {}
+            try {
+              const sp = new URLSearchParams(location.search);
+              if (t === d.me) sp.delete('as'); else sp.set('as', t);
+              const qs = sp.toString();
+              history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '') + location.hash);
+            } catch (e) {}
             menu.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === btn));
             setRoot(t);
             va.classList.remove('open');
@@ -1044,6 +1161,30 @@ dash.calc('league-table', {
         document.addEventListener('click', () => va.classList.remove('open'));
         document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') va.classList.remove('open'); });
         va.append(root, menu);
+      }
+      const bar = document.getElementById('tabbar');
+      if (bar && !bar.dataset.wired) {
+        bar.dataset.wired = '1';
+        const show = (name, write) => {
+          document.querySelectorAll('.hq-tabv').forEach((tv) => { tv.hidden = tv.dataset.tab !== name; });
+          bar.querySelectorAll('button').forEach((b2) => b2.classList.toggle('on', b2.dataset.tab === name));
+          if (write) {
+            try {
+              const sp = new URLSearchParams(location.search);
+              if (name === 'overview') sp.delete('tab'); else sp.set('tab', name);
+              const qs = sp.toString();
+              history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '') + location.hash);
+            } catch (e) {}
+          }
+          requestAnimationFrame(() => dash.redrawAll());
+        };
+        bar.addEventListener('click', (ev) => { const b2 = ev.target.closest('button'); if (b2) show(b2.dataset.tab, true); });
+        let initTab = 'overview';
+        try {
+          const qt = new URLSearchParams(location.search).get('tab');
+          if (qt && document.querySelector('.hq-tabv[data-tab="' + qt + '"]')) initTab = qt;
+        } catch (e) {}
+        show(initTab, false);
       }
       const sel = document.querySelector('#roster-team');
       if (sel && !sel.options.length) {
