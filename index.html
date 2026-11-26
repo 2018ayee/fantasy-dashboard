@@ -985,7 +985,16 @@ dash.calc('league-table', {
       window.DATA = d;
       window.dashData = { standings: d.standings, values: d.values, waivers: d.waivers, odds: d.odds,
         matchups: d.matchups, matchdetail: d.players, toilet: d.toilet, avatars: d.avatars || {}, moves: d.moves || {} };
-      window.viewTeam = d.me;
+      let initTeam = d.me;
+      try {
+        const qp = new URLSearchParams(location.search).get('as');
+        if (qp) {
+          const all = d.standings.map((r) => r.team);
+          const hit = all.find((t) => t.toLowerCase() === qp.toLowerCase());
+          if (hit) initTeam = hit;
+        }
+      } catch (e) {}
+      window.viewTeam = initTeam;
       const va = document.querySelector('#view-as');
       if (va && !va.children.length) {
         const avatarEl = (t) => {
@@ -1008,7 +1017,7 @@ dash.calc('league-table', {
           const lbl = document.createElement('span'); lbl.className = 'lbl'; lbl.textContent = 'Viewing as';
           root.append(lbl, t, ' \u25BE');
         };
-        setRoot(d.me);
+        setRoot(window.viewTeam);
         for (const t of teams) {
           const btn = document.createElement('button');
           btn.type = 'button'; btn.setAttribute('role', 'option');
@@ -1017,10 +1026,11 @@ dash.calc('league-table', {
           btn.append(t);
           const rec = (d.avatars || {})[t];
           if (rec && rec.label) { const s = document.createElement('span'); s.className = 'sub'; s.textContent = rec.label; btn.append(s); }
-          if (t === d.me) btn.classList.add('on');
+          if (t === window.viewTeam) btn.classList.add('on');
           btn.addEventListener('click', (ev) => {
             ev.stopPropagation();
             window.viewTeam = t;
+            try { history.replaceState(null, '', location.pathname + (t === d.me ? '' : '?as=' + encodeURIComponent(t)) + location.hash); } catch (e) {}
             menu.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === btn));
             setRoot(t);
             va.classList.remove('open');
@@ -1039,6 +1049,7 @@ dash.calc('league-table', {
       if (sel && !sel.options.length) {
         const teams = [d.me].concat(d.standings.map((r) => r.team).filter((t) => t !== d.me));
         for (const t of teams) { const o = document.createElement('option'); o.value = t; o.textContent = t; sel.append(o); }
+        sel.value = window.viewTeam;
         sel.addEventListener('change', () => dash.draw('roster-body'));
       }
       dash.redrawAll();
