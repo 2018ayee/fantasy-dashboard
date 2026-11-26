@@ -728,6 +728,10 @@ dash.calc('league-table', {
         if (pj && q.state !== 'final') {
           const sl = p.pid in slp ? slp[p.pid] : 0;
           q.proj = Math.max(0, Math.round((p.proj + 0.35 * (sl - p.slp)) * 10) / 10);
+          if (q.state === 'upcoming' && sl === 0 && p.slp >= 3) {
+            q.proj = 0;
+            if (!q.inj) q.inj = 'Out';
+          }
         }
         return q;
       });
