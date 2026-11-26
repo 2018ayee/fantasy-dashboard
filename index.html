@@ -459,6 +459,11 @@ dash.calc('league-table', {
     }
     el.textContent = v == null ? '—' : fmt[el.dataset.fmt || 'raw'](v);
   });
+  const nameOf = (team) => {
+    const nmd = (dash.data('names') || {}).data;
+    const rec = nmd && nmd[team];
+    return rec ? (rec.nick || rec.first || team) : team;
+  };
   const avatarImg = (team, cls) => {
     const av = (dash.data('avatars') || {}).data;
     const rec = av && av[team];
@@ -567,13 +572,13 @@ dash.calc('league-table', {
     const played = ps.filter((x) => x.state !== 'upcoming' && Number(x.pts) > 0);
     if (played.length) {
       const top = played.reduce((a, x) => (Number(x.pts) > Number(a.pts) ? x : a));
-      tile('Top score', top.player + ' \u00B7 ' + top.pts, top.team + ' banked it' + (top.state === 'live' ? ', still cooking' : ''), 'var(--hq-gold)');
+      tile('Top score', top.player + ' \u00B7 ' + top.pts, nameOf(top.team) + ' banked it' + (top.state === 'live' ? ', still cooking' : ''), 'var(--hq-gold)');
     }
     // crime scene: worst shortfall in a finished game
     const finals = ps.filter((x) => x.state === 'final' && Number(x.proj) >= 8 && (!x.inj || x.inj === 'Questionable'));
     if (finals.length) {
       const dud = finals.reduce((a, x) => (Number(x.proj) - Number(x.pts) > Number(a.proj) - Number(a.pts) ? x : a));
-      if (Number(dud.proj) - Number(dud.pts) > 3) tile('Crime scene', dud.player + ' \u00B7 ' + dud.pts, 'projected ' + dud.proj + ', delivered that \u2014 sorry, ' + dud.team, 'var(--color-bad)');
+      if (Number(dud.proj) - Number(dud.pts) > 3) tile('Crime scene', dud.player + ' \u00B7 ' + dud.pts, 'projected ' + dud.proj + ', delivered that \u2014 sorry, ' + nameOf(dud.team), 'var(--color-bad)');
     }
     // stonks / falling knife from 30-day value
     if (vv.status === 'ok' && vv.data) {
@@ -584,8 +589,8 @@ dash.calc('league-table', {
         if (!up || v[2] > vv.data[up.pid][2]) up = x;
         if (!dn || v[2] < vv.data[dn.pid][2]) dn = x;
       }
-      if (up && vv.data[up.pid][2] > 0) tile('Stonks', up.player + ' +' + fmt.int(vv.data[up.pid][2]), '30-day value \u00B7 ' + up.team + '\u2019s guy', 'var(--color-ok)');
-      if (dn && vv.data[dn.pid][2] < 0) tile('Falling knife', dn.player + ' ' + fmt.int(vv.data[dn.pid][2]), '30 days of decline \u00B7 condolences, ' + dn.team, 'var(--hq-qb)');
+      if (up && vv.data[up.pid][2] > 0) tile('Stonks', up.player + ' +' + fmt.int(vv.data[up.pid][2]), '30-day value \u00B7 ' + nameOf(up.team) + '\u2019s guy', 'var(--color-ok)');
+      if (dn && vv.data[dn.pid][2] < 0) tile('Falling knife', dn.player + ' ' + fmt.int(vv.data[dn.pid][2]), '30 days of decline \u00B7 condolences, ' + nameOf(dn.team), 'var(--hq-qb)');
     }
     // photo finish: closest projected final
     if (mu.status === 'ok' && lpg.status === 'ok' && Array.isArray(lpg.data)) {
@@ -665,7 +670,7 @@ dash.calc('league-table', {
   });
   dash.draw('moves-note', (el) => {
     const team = window.viewTeam || 'adamyeet';
-    el.textContent = 'This week\u2019s business for ' + team + '.';
+    el.textContent = 'This week\u2019s business for ' + nameOf(team) + '.';
   });
   dash.draw('moves-list', (el) => {
     const g = dash.data('moves');
@@ -1096,7 +1101,7 @@ dash.calc('league-table', {
       const d = await fetch('data.json', { cache: 'no-store' }).then((r) => r.json());
       window.DATA = d;
       window.dashData = { standings: d.standings, values: d.values, waivers: d.waivers, odds: d.odds,
-        matchups: d.matchups, matchdetail: d.players, toilet: d.toilet, avatars: d.avatars || {}, moves: d.moves || {}, trades: d.trades || [], games: d.games || {} };
+        matchups: d.matchups, matchdetail: d.players, toilet: d.toilet, avatars: d.avatars || {}, moves: d.moves || {}, trades: d.trades || [], games: d.games || {}, names: d.names || {} };
       let initTeam = d.me;
       try {
         const qp = new URLSearchParams(location.search).get('as');
