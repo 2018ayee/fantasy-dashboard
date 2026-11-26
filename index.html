@@ -101,6 +101,7 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 .hq-viewas .menu button.on{background:color-mix(in srgb,var(--hq-gold) 12%,transparent)}
 .hq-av{width:20px;height:20px;border-radius:50%;background:var(--cds-chart-muted);object-fit:cover;flex:none}
 .hq-av-s{width:17px;height:17px;border-radius:50%;background:var(--cds-chart-muted);object-fit:cover;vertical-align:-4px;margin-right:6px}
+.hq-tiles-wk{margin-top:10px}
 .hq-teamsel{margin:8px 0 2px}
 .hq-teamsel select{font:inherit;font-size:var(--cds-font-size-caption);color:var(--color-fg);background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:8px;padding:4px 8px}
 .hq-split{grid-template-columns:5fr 6fr}
@@ -148,6 +149,7 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 <nav class="hq-nav" aria-label="Sections">
 <a href="#roster">Roster</a>
 <a href="#matchups">Matchups</a>
+<a href="#numbers">Numbers</a>
 <a href="#standings">Standings</a>
 <a href="#title-odds">Title odds</a>
 <a href="#toilet">Toilet bowl</a>
@@ -192,6 +194,10 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 <div class="hq-mini dash-skeleton" data-draw="thisweek-card" data-source="matchups matchdetail live-proj" data-field="win_a_pct">—</div>
 </section>
 </div>
+<section id="numbers" class="hq-card">
+<h2><span class="dot" style="background:var(--hq-wr)"></span>By the numbers</h2>
+<div class="hq-tiles hq-tiles-wk dash-skeleton" data-draw="week-numbers" data-source="matchdetail values matchups live-proj standings">—</div>
+</section>
 <section id="standings" class="hq-card">
 <h2><span class="dot" style="background:var(--hq-wr)"></span>Standings and simulated odds</h2>
 <div class="hq-tablewrap">
@@ -230,6 +236,7 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 </section>
 <section id="waivers" class="hq-card">
 <h2><span class="dot" style="background:var(--hq-rb)"></span>Waiver board</h2>
+<p class="hq-sub">Free talent. Mostly.</p>
 <div class="hq-filter" data-for="waiver-body" role="group" aria-label="Filter by position">
 <button type="button" class="f on" data-pos="">All</button>
 <button type="button" class="f" data-pos="QB">QB</button>
@@ -512,6 +519,58 @@ dash.calc('league-table', {
     return s;
   };
   const trend = (v) => (v == null ? td('', 'r') : td(fmt.signed(v), 'r ' + (Number(v) >= 0 ? 'up' : 'down')));
+  dash.draw('week-numbers', (el) => {
+    const det = dash.data('matchdetail');
+    const vv = dash.data('values');
+    const mu = dash.data('matchups');
+    const lpg = dash.data('live-proj');
+    if (!ready(el, det)) { if (det.status !== 'loading') el.replaceChildren(); return; }
+    el.replaceChildren();
+    const tiles = [];
+    const tile = (k, v, s, color) => tiles.push([k, v, s, color]);
+    const ps = det.data;
+    // top score banked
+    const played = ps.filter((x) => x.state !== 'upcoming' && Number(x.pts) > 0);
+    if (played.length) {
+      const top = played.reduce((a, x) => (Number(x.pts) > Number(a.pts) ? x : a));
+      tile('Top score', top.player + ' \u00B7 ' + top.pts, top.team + ' banked it' + (top.state === 'live' ? ', still cooking' : ''), 'var(--hq-gold)');
+    }
+    // crime scene: worst shortfall in a finished game
+    const finals = ps.filter((x) => x.state === 'final' && Number(x.proj) >= 8 && (!x.inj || x.inj === 'Questionable'));
+    if (finals.length) {
+      const dud = finals.reduce((a, x) => (Number(x.proj) - Number(x.pts) > Number(a.proj) - Number(a.pts) ? x : a));
+      if (Number(dud.proj) - Number(dud.pts) > 3) tile('Crime scene', dud.player + ' \u00B7 ' + dud.pts, 'projected ' + dud.proj + ', delivered that \u2014 sorry, ' + dud.team, 'var(--color-bad)');
+    }
+    // stonks / falling knife from 30-day value
+    if (vv.status === 'ok' && vv.data) {
+      let up = null, dn = null;
+      for (const x of ps) {
+        const v = vv.data[x.pid];
+        if (!v || v[2] == null) continue;
+        if (!up || v[2] > vv.data[up.pid][2]) up = x;
+        if (!dn || v[2] < vv.data[dn.pid][2]) dn = x;
+      }
+      if (up && vv.data[up.pid][2] > 0) tile('Stonks', up.player + ' +' + fmt.int(vv.data[up.pid][2]), '30-day value \u00B7 ' + up.team + '\u2019s guy', 'var(--color-ok)');
+      if (dn && vv.data[dn.pid][2] < 0) tile('Falling knife', dn.player + ' ' + fmt.int(vv.data[dn.pid][2]), '30 days of decline \u00B7 condolences, ' + dn.team, 'var(--hq-qb)');
+    }
+    // photo finish: closest projected final
+    if (mu.status === 'ok' && lpg.status === 'ok' && Array.isArray(lpg.data)) {
+      const pf = (t, fb) => { const r = lpg.data.find((x) => x.team === t); return r ? r.proj_final : fb; };
+      let best = null, gap = 1e9;
+      for (const r of mu.data) {
+        const g2 = Math.abs(pf(r.team_a, r.proj_a) - pf(r.team_b, r.proj_b));
+        if (g2 < gap) { gap = g2; best = r; }
+      }
+      if (best) tile('Photo finish', best.team_a + ' vs ' + best.team_b, 'projected ' + gap.toFixed(1) + ' apart \u2014 somebody\u2019s losing this by a missed kick', 'var(--hq-rb)');
+    }
+    for (const [k, v, s, color] of tiles) {
+      const dv = document.createElement('div');
+      dv.className = 'hq-tile'; dv.style.setProperty('--tile', color);
+      const mk = (cls, txt) => { const e = document.createElement('span'); e.className = cls; e.textContent = txt; dv.append(e); };
+      mk('k', k); mk('v', v); mk('s', s);
+      el.append(dv);
+    }
+  });
   dash.draw('moves-note', (el) => {
     const team = window.viewTeam || 'adamyeet';
     el.textContent = 'This week\u2019s business for ' + team + '.';
