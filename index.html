@@ -655,7 +655,8 @@ dash.calc('league-table', {
           const asr = document.createElement('div');
           asr.className = 'as';
           const nm = document.createElement('span');
-          nm.textContent = a.player + ' · ' + a.pos;
+          nm.textContent = a.player + ' ';
+          nm.append(posBadge(a.pos));
           const vb = document.createElement('b');
           vb.textContent = fmt.int(a.v);
           asr.append(nm, vb);
