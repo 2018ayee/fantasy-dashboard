@@ -87,6 +87,7 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 .hq-moves li{max-width:70ch}
 .hq-moves li::marker{color:var(--hq-gold);font-weight:var(--cds-font-weight-medium)}
 .hq-m{border-radius:var(--cds-radius);padding:8px;margin:-4px;cursor:pointer}
+.hq-m .hq-lu{cursor:auto;user-select:text}
 .hq-m:hover{background:color-mix(in srgb,var(--color-fg-muted) 7%,transparent)}
 .hq-m:focus-visible{outline:2px solid var(--hq-wr)}
 .hq-m .chev{opacity:.5;font-size:.8em}
@@ -150,7 +151,7 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 </section>
 <section id="thisweek" class="hq-card">
 <h2><span class="dot" style="background:var(--hq-rb)"></span>This week</h2>
-<p class="hq-sub">Real pairings; pre-week win probabilities from the player-level simulation. Tap a game to open the best-ball lineups. Scored = points on the board at the last snapshot; Proj = projected final, locking in finished games and projecting the rest.</p>
+<p class="hq-sub">Real pairings; pre-week win probabilities from the player-level simulation. Tap a game to open the best-ball lineups. The bold number is points already on the board; beside it is the projected final, which locks in finished games and projects the rest.</p>
 <div class="hq-mini dash-skeleton" data-draw="thisweek-card" data-source="matchups matchdetail live-proj" data-field="win_a_pct">—</div>
 </section>
 </div>
@@ -501,10 +502,14 @@ dash.calc('league-table', {
         .style('font-size', big ? 'var(--cds-font-size-body)' : 'var(--cds-font-size-caption)')
         .style('font-weight', isMine ? 'var(--cds-font-weight-medium)' : 'normal')
         .style('color', isMine ? 'var(--color-fg)' : 'var(--color-fg-muted)');
-      head.append('span').text(r.team_a + ' ' + fmt.pct(r.win_a_pct));
+      const wcls = (pct) => (pct > 50 ? 'up' : pct < 50 ? 'down' : null);
+      const left = head.append('span');
+      left.append('span').text(r.team_a + ' ');
+      left.append('span').attr('class', wcls(r.win_a_pct)).text(fmt.pct(r.win_a_pct));
       const right = head.append('span');
-      right.append('span').text(r.team_b + ' ' + fmt.pct(r.win_b_pct) + ' ');
-      right.append('span').attr('class', 'chev').text(openGames.has(key) ? '▾' : '▸');
+      right.append('span').text(r.team_b + ' ');
+      right.append('span').attr('class', wcls(r.win_b_pct)).text(fmt.pct(r.win_b_pct));
+      right.append('span').attr('class', 'chev').text(' ' + (openGames.has(key) ? '▾' : '▸'));
       const bar = wrap.append('div').style('display', 'flex').style('height', big ? '13px' : '7px')
         .style('border-radius', '999px').style('overflow', 'hidden').style('margin-top', '4px');
       const aMine = r.team_a === 'adamyeet';
@@ -514,8 +519,13 @@ dash.calc('league-table', {
         .style('background', isMine ? (aMine ? 'var(--cds-chart-muted)' : 'var(--hq-gold)') : 'var(--cds-chart-muted)');
       const sub = wrap.append('div').style('display', 'flex').style('justify-content', 'space-between').style('gap', '8px')
         .style('margin-top', '3px').style('font-size', 'var(--cds-font-size-caption)').style('color', 'var(--color-fg-muted)');
-      sub.append('span').text('Scored ' + r.live_a + ' · Proj ' + lpv(r.team_a, r.proj_a));
-      sub.append('span').text('Scored ' + r.live_b + ' · Proj ' + lpv(r.team_b, r.proj_b));
+      const sline = (scored, proj) => {
+        const s = sub.append('span');
+        s.append('b').style('color', 'var(--color-fg)').style('font-weight', 'var(--cds-font-weight-medium)').text(scored);
+        s.append('span').text(' · ' + proj);
+      };
+      sline(r.live_a, lpv(r.team_a, r.proj_a));
+      sline(r.live_b, lpv(r.team_b, r.proj_b));
       if (openGames.has(key) && players.length) {
         const lineup = (team) => {
           const ps = players.filter((pl) => pl.team === team).sort((a, b) => val(b) - val(a));
@@ -571,8 +581,12 @@ dash.calc('league-table', {
         if (openGames.has(key)) openGames.delete(key); else openGames.add(key);
         dash.draw('thisweek-card');
       };
-      wrap.on('click', toggle);
-      wrap.on('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); toggle(); } });
+      wrap.on('click', (ev) => {
+        if (ev.target.closest && ev.target.closest('.hq-lu')) return;
+        if (window.getSelection && String(window.getSelection())) return;
+        toggle();
+      });
+      wrap.on('keydown', (ev) => { if ((ev.key === 'Enter' || ev.key === ' ') && ev.target === ev.currentTarget) { ev.preventDefault(); toggle(); } });
     });
     box.append('p').attr('class', 'hq-sub').style('margin-top', '2px')
       .text('Win odds are from the pre-week simulation; scores, game states and projections refresh straight from Sleeper while games are on.');
