@@ -148,7 +148,10 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 .hq-lu .pc .nm .inj{font-size:.85em;font-weight:var(--cds-font-weight-medium);color:#d4574e}
 .hq-lu .pc .nm .inj.q{color:var(--hq-te)}
 @keyframes hq-pulse{0%,100%{opacity:1}50%{opacity:.2}}
-@media (prefers-reduced-motion: reduce){.hq-lu .pc .nm .st{animation:none}}
+.hq b.ok{color:var(--color-ok)}
+.hq b.bad{color:var(--color-bad)}
+.hq .golive{animation:hq-pulse 1.6s ease-in-out infinite}
+@media (prefers-reduced-motion: reduce){.hq-lu .pc .nm .st,.hq .golive{animation:none}}
 .hq-lu .pc .vals{white-space:nowrap;font-variant-numeric:tabular-nums}
 .hq-lu .pc b{color:var(--color-fg);font-weight:var(--cds-font-weight-medium)}
 .hq-lu .bn .pc{opacity:.75}
@@ -862,13 +865,14 @@ dash.calc('league-table', {
       bar.append('div').style('flex', '1').style('background', 'var(--cds-chart-muted)');
       const sub = wrap.append('div').style('display', 'flex').style('justify-content', 'space-between').style('gap', '8px')
         .style('margin-top', '3px').style('font-size', 'var(--cds-font-size-caption)').style('color', 'var(--color-fg-muted)');
-      const sline = (scored, proj) => {
+      const teamLive = (t) => players.some((pl) => pl.team === t && pl.state === 'live');
+      const sline = (scored, proj, liveNow) => {
         const s = sub.append('span');
-        s.append('b').style('color', 'var(--color-fg)').style('font-weight', 'var(--cds-font-weight-medium)').text(scored);
+        s.append('b').attr('class', liveNow ? 'golive' : null).style('color', 'var(--color-fg)').style('font-weight', 'var(--cds-font-weight-medium)').text(scored);
         s.append('span').text(' · ' + proj);
       };
-      sline(r.live_a, lpv(r.team_a, r.proj_a));
-      sline(r.live_b, lpv(r.team_b, r.proj_b));
+      sline(r.live_a, lpv(r.team_a, r.proj_a), teamLive(r.team_a));
+      sline(r.live_b, lpv(r.team_b, r.proj_b), teamLive(r.team_b));
       if (openGames.has(key) && players.length) {
         const lineup = (team) => {
           const ps = players.filter((pl) => pl.team === team).sort((a, b) => val(b) - val(a));
@@ -916,7 +920,12 @@ dash.calc('league-table', {
           if (alignRight) gl.style('text-align', 'right');
           gl.text(gameLine(pl));
           const v = c.append('span').attr('class', 'vals');
-          if (pl.state !== 'upcoming') { v.append('b').text(pl.pts); v.append('span').text(' / ' + pl.proj); }
+          if (pl.state !== 'upcoming') {
+            const pb = v.append('b').text(pl.pts);
+            if (pl.state === 'live') pb.attr('class', 'golive');
+            else pb.attr('class', Number(pl.pts) > Number(pl.proj) ? 'ok' : Number(pl.pts) < Number(pl.proj) ? 'bad' : null);
+            v.append('span').text(' / ' + pl.proj);
+          }
           else v.append('span').text(val(pl));
         };
         const slotRows = (slotsA, slotsB, benchRow) => {
