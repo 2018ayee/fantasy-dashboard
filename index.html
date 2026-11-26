@@ -88,13 +88,15 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 .hq-moves li::marker{color:var(--hq-gold);font-weight:var(--cds-font-weight-medium)}
 .hq-m{border-radius:var(--cds-radius);padding:8px;margin:-4px;cursor:pointer}
 .hq-m .hq-lu{cursor:auto;user-select:text}
+.hq-split{grid-template-columns:2fr 3fr}
+@media (max-width:860px){.hq-split{grid-template-columns:1fr}}
 .hq-m:hover{background:color-mix(in srgb,var(--color-fg-muted) 7%,transparent)}
 .hq-m:focus-visible{outline:2px solid var(--hq-wr)}
 .hq-m .chev{opacity:.5;font-size:.8em}
 .hq-refresh{font:inherit;font-size:var(--cds-font-size-caption);color:var(--color-fg);background:transparent;border:1px solid var(--color-border-line);border-radius:999px;padding:3px 12px;cursor:pointer;white-space:nowrap}
 .hq-refresh:hover{border-color:var(--color-fg-muted)}
 .hq-refresh[disabled]{opacity:.55;cursor:default}
-.hq-lu{display:grid;grid-template-columns:1fr auto 1fr;gap:3px 8px;margin-top:10px;font-size:var(--cds-font-size-caption);align-items:center}
+.hq-lu{display:grid;grid-template-columns:1fr auto 1fr;gap:5px 10px;margin-top:10px;font-size:var(--cds-font-size-caption);align-items:center;background:color-mix(in srgb,var(--color-fg) 4%,transparent);border-radius:8px;padding:10px 12px}
 .hq-lu .mh{color:var(--color-fg);font-weight:var(--cds-font-weight-medium);padding-bottom:3px;border-bottom:1px solid var(--color-border-line);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hq-lu .bh{grid-column:1 / -1;color:var(--color-fg-muted);letter-spacing:.04em;text-transform:uppercase;font-size:.85em;padding-top:6px}
 .hq-lu .slot{width:34px;text-align:center;font-weight:var(--cds-font-weight-medium);font-size:.85em;padding:1px 0;border-radius:6px;letter-spacing:.02em}
@@ -112,7 +114,7 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 .hq-lu .pc .nm .inj.q{color:var(--hq-te)}
 @keyframes hq-pulse{0%,100%{opacity:1}50%{opacity:.2}}
 @media (prefers-reduced-motion: reduce){.hq-lu .pc .nm .st{animation:none}}
-.hq-lu .pc .vals{white-space:nowrap}
+.hq-lu .pc .vals{white-space:nowrap;font-variant-numeric:tabular-nums}
 .hq-lu .pc b{color:var(--color-fg);font-weight:var(--cds-font-weight-medium)}
 .hq-lu .bn .pc{opacity:.75}
 .hq-foot{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
@@ -128,12 +130,12 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 <p class="hq-lede">Team adamyeet (chubby wubbies) sits at <b data-draw="cell" data-source="standings" data-field="record" data-where="team=adamyeet" class="dash-skeleton">—</b> with the No. <b data-draw="cell" data-source="standings" data-field="value_rank" data-where="team=adamyeet" class="dash-skeleton">—</b> roster in the league by trade value, <b data-draw="cell" data-fmt="pct0" data-source="value-gap" class="dash-skeleton">—</b> clear of the next-best roster, and the No. <b data-draw="cell" data-source="champ-rank" class="dash-skeleton">—</b> championship odds in this dashboard's best-ball simulation.</p>
 </header>
 <nav class="hq-nav" aria-label="Sections">
-<a href="#title-odds">Title odds</a>
-<a href="#thisweek">This week</a>
-<a href="#standings">Standings</a>
-<a href="#moves">Moves</a>
-<a href="#toilet">Toilet bowl</a>
 <a href="#roster">Roster</a>
+<a href="#matchups">Matchups</a>
+<a href="#standings">Standings</a>
+<a href="#title-odds">Title odds</a>
+<a href="#toilet">Toilet bowl</a>
+<a href="#moves">Moves</a>
 <a href="#waivers">Waivers</a>
 </nav>
 <section id="tiles" class="hq-tiles" aria-label="Season snapshot">
@@ -143,14 +145,32 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 <div class="hq-tile" style="--tile:var(--hq-qb)"><span class="k">Win the title</span><span class="v dash-skeleton" data-draw="cell" data-fmt="pct" data-source="odds" data-field="champ_pct" data-where="team=adamyeet">—</span><span class="s">Rank <b data-draw="cell" data-source="champ-rank">—</b> of 10</span></div>
 <div class="hq-tile" style="--tile:var(--hq-te)"><span class="k">Roster value</span><span class="v dash-skeleton" data-draw="cell" data-fmt="int" data-source="standings" data-field="total_value" data-where="team=adamyeet">—</span><span class="s">No. <b data-draw="cell" data-source="standings" data-field="value_rank" data-where="team=adamyeet">—</b> of 10 teams</span></div>
 </section>
-<div class="hq-2col">
-<section id="title-odds" class="hq-card">
-<h2><span class="dot" style="background:var(--hq-qb)"></span>Championship odds</h2>
-<p class="hq-sub">Bars: player-level best-ball simulation (5,000 seasons). Dot: FantasyCalc's simulation, for comparison. Under 1% shows as &lt;1%.</p>
-<div class="hq-chart dash-skeleton" data-draw="odds-chart" data-source="odds standings" data-field="champ_pct">—</div>
+
+<div class="hq-2col hq-split">
+<section id="roster" class="hq-card">
+<h2><span class="dot" style="background:var(--hq-te)"></span>adamyeet roster by value</h2>
+<div class="hq-filter" data-for="roster-body" role="group" aria-label="Filter by position">
+<button type="button" class="f on" data-pos="">All</button>
+<button type="button" class="f" data-pos="QB">QB</button>
+<button type="button" class="f" data-pos="RB">RB</button>
+<button type="button" class="f" data-pos="WR">WR</button>
+<button type="button" class="f" data-pos="TE">TE</button>
+</div>
+<div class="hq-tablewrap">
+<table data-source="roster" data-row-key="player">
+<thead><tr>
+<th data-field="player">Player</th>
+<th data-field="pos">Pos</th>
+<th class="r" data-field="pos_rank">Rank</th>
+<th class="r" data-field="value">Value</th>
+<th class="r" data-field="trend_30d">30-day</th>
+</tr></thead>
+<tbody data-draw="roster-body" class="dash-skeleton"></tbody>
+</table>
+</div>
 </section>
-<section id="thisweek" class="hq-card">
-<h2><span class="dot" style="background:var(--hq-rb)"></span>This week</h2>
+<section id="matchups" class="hq-card">
+<h2><span class="dot" style="background:var(--hq-rb)"></span>Matchups</h2>
 <p class="hq-sub">Real pairings; pre-week win probabilities from the player-level simulation. Tap a game to open the best-ball lineups. The bold number is points already on the board; beside it is the projected final, which locks in finished games and projects the rest.</p>
 <div class="hq-mini dash-skeleton" data-draw="thisweek-card" data-source="matchups matchdetail live-proj" data-field="win_a_pct">—</div>
 </section>
@@ -174,6 +194,18 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 </div>
 </section>
 <div class="hq-2col">
+<section id="title-odds" class="hq-card">
+<h2><span class="dot" style="background:var(--hq-qb)"></span>Championship odds</h2>
+<p class="hq-sub">Player-level best-ball simulation, 5,000 seasons. Under 1% shows as &lt;1%.</p>
+<div class="hq-chart dash-skeleton" data-draw="odds-chart" data-source="odds" data-field="champ_pct">—</div>
+</section>
+<section id="toilet" class="hq-card">
+<h2><span class="dot" style="background:var(--color-bad)"></span>Toilet bowl: Waffle House watch</h2>
+<p class="hq-sub">The bottom 2 spend 24 hours at Waffle House, one hour off per waffle. Bars: odds under the weeks 15-17 round robin. Dot: if Week 15 alone decided. Teams not shown have clinched safety.</p>
+<div class="hq-mini dash-skeleton" data-draw="toilet-bars" data-source="toilet" data-field="waffle_rr_pct">—</div>
+</section>
+</div>
+<div class="hq-2col">
 <section id="moves" class="hq-card">
 <h2><span class="dot" style="background:var(--hq-gold)"></span>Moves to make</h2>
 <p class="hq-sub">Written for Week 12. Rewritten at each data refresh; figures are FantasyCalc trade values and update live from the data.</p>
@@ -183,35 +215,6 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 <li><b>Shop Tony Pollard.</b> At <b data-draw="cell" data-fmt="int" data-source="roster" data-field="value" data-where="player=Tony Pollard" class="dash-skeleton">—</b> he is the most valuable benched player in the league, and the three 5-6 teams chasing the last playoff spots are natural buyers.</li>
 <li><b>Chase seeding.</b> The model gives you a <b data-draw="cell" data-fmt="pct" data-source="odds" data-field="bye_pct" data-where="team=adamyeet" class="dash-skeleton">—</b> shot at a first-round bye against <b data-draw="cell" data-fmt="pct" data-source="odds" data-field="bye_pct" data-where="team=ZachWilsonFan5" class="dash-skeleton">—</b> for ZachWilsonFan5 and <b data-draw="cell" data-fmt="pct" data-source="odds" data-field="bye_pct" data-where="team=mvpatel2000" class="dash-skeleton">—</b> for mvpatel2000, so the last three regular-season weeks decide whether you skip a playoff round.</li>
 </ol>
-</section>
-<section id="toilet" class="hq-card">
-<h2><span class="dot" style="background:var(--color-bad)"></span>Toilet bowl: Waffle House watch</h2>
-<p class="hq-sub">The bottom 2 spend 24 hours at Waffle House, one hour off per waffle. Bars: odds under the weeks 15-17 round robin. Dot: if Week 15 alone decided. Teams not shown have clinched safety.</p>
-<div class="hq-mini dash-skeleton" data-draw="toilet-bars" data-source="toilet" data-field="waffle_rr_pct">—</div>
-</section>
-</div>
-<div class="hq-2col">
-<section id="roster" class="hq-card">
-<h2><span class="dot" style="background:var(--hq-te)"></span>adamyeet roster by value</h2>
-<div class="hq-filter" data-for="roster-body" role="group" aria-label="Filter by position">
-<button type="button" class="f on" data-pos="">All</button>
-<button type="button" class="f" data-pos="QB">QB</button>
-<button type="button" class="f" data-pos="RB">RB</button>
-<button type="button" class="f" data-pos="WR">WR</button>
-<button type="button" class="f" data-pos="TE">TE</button>
-</div>
-<div class="hq-tablewrap">
-<table data-source="roster" data-row-key="player">
-<thead><tr>
-<th data-field="player">Player</th>
-<th data-field="pos">Pos</th>
-<th class="r" data-field="pos_rank">Rank</th>
-<th class="r" data-field="value">Value</th>
-<th class="r" data-field="trend_30d">30-day</th>
-</tr></thead>
-<tbody data-draw="roster-body" class="dash-skeleton"></tbody>
-</table>
-</div>
 </section>
 <section id="waivers" class="hq-card">
 <h2><span class="dot" style="background:var(--hq-rb)"></span>Waiver board</h2>
@@ -236,6 +239,8 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 </div>
 </section>
 </div>
+
+
 <details class="hq-method" id="methodology">
 <summary>How the playoff odds are modeled</summary>
 <p>The odds come from a player-level simulation built on this league's own box scores. Every rostered player's weekly points, weeks 1-11, feed a projection: an exponentially weighted average (the recency half-life and shrinkage are fit per position by walk-forward backtest on weeks 7-11, where the model beat a naive season average at every position) blended 65/35 with Sleeper's weekly projection, which carries matchup context. Each simulated week samples every player's score from a right-skewed Gamma whose variance is fit per position, zeroes players on bye (real NFL schedule) or out injured (live designations mapped to play probabilities), and scores each team with the actual best-ball operator: best QB, two RB, two WR, TE and two flex from that week's samples, so bench depth is priced by the scoring rule itself. Weeks 12-14 use the league's real pairings; the playoff is the league's real format (6 teams, top-2 byes, reseeded, weeks 15-17) with seeding ties broken on points-for carried through the simulation. The toilet bowl simulates both formats the league discussed for the bottom four. 5,000 season simulations. The full model code, backtest numbers and assumptions are attached to the "Simulated playoff odds" source, and FantasyCalc's own simulation is kept in the "Standings & playoff odds" source for comparison.</p>
@@ -628,20 +633,17 @@ dash.calc('league-table', {
   });
   dash.draw('odds-chart', (el) => {
     const g = dash.data('odds');
-    const fc = dash.data('standings');
     if (!ready(el, g)) { if (g.status !== 'loading') el.replaceChildren(); return; }
     el.replaceChildren();
-    const fcBy = {};
-    if (fc.status === 'ok') for (const r of fc.data) fcBy[r.team] = Number(r.champ_pct);
     const rows = g.data.slice().sort((a, b) => Number(b.champ_pct) - Number(a.champ_pct));
-    const maxV = Math.max(...rows.map((r) => Number(r.champ_pct)), ...Object.values(fcBy), 1);
+    const maxV = Math.max(...rows.map((r) => Number(r.champ_pct)), 1);
     const W = el.clientWidth || 440;
     const rowH = 27;
     const m = { t: 4, r: 48, b: 4, l: 110 };
     const x = (v) => (Number(v) / (maxV * 1.15)) * Math.max(60, W - m.l - m.r);
     const H = m.t + m.b + rows.length * rowH;
     const svg = d3.select(el).append('svg').attr('width', W).attr('height', H).attr('role', 'img')
-      .attr('aria-label', 'Horizontal bar chart of simulated championship odds for each of the ten teams, with FantasyCalc\'s odds shown as dots');
+      .attr('aria-label', 'Horizontal bar chart of simulated championship odds for each of the ten teams');
     const row = svg.selectAll('g').data(rows).join('g')
       .attr('transform', (r, i) => 'translate(' + m.l + ',' + (m.t + i * rowH) + ')');
     row.append('text').attr('x', -8).attr('y', rowH / 2).attr('dy', '0.32em').attr('text-anchor', 'end')
@@ -651,10 +653,7 @@ dash.calc('league-table', {
     row.append('rect').attr('x', 0).attr('y', 6).attr('height', rowH - 12).attr('rx', 2)
       .attr('width', (r) => Math.max(2, x(r.champ_pct)))
       .style('fill', (r) => (r.team === 'adamyeet' ? dash.colors[1] : dash.colors[0]));
-    row.filter((r) => fcBy[r.team] != null).append('circle')
-      .attr('cx', (r) => x(fcBy[r.team])).attr('cy', rowH / 2).attr('r', 3.5)
-      .style('fill', 'var(--color-fg)').style('stroke', 'var(--color-bg)').style('stroke-width', 1.5);
-    row.append('text').attr('x', (r) => Math.max(x(r.champ_pct), fcBy[r.team] != null ? x(fcBy[r.team]) : 0) + 8)
+    row.append('text').attr('x', (r) => x(r.champ_pct) + 8)
       .attr('y', rowH / 2).attr('dy', '0.32em')
       .style('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)')
       .text((r) => fmt.pct(r.champ_pct));
