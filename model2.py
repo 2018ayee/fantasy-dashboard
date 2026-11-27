@@ -91,8 +91,19 @@ def pplay(pid, w):
     nm, pos, team, inj = meta.get(pid, ['?','WR',None,None])
     if team and w in BYES and team in BYES[w]: return 0.0
     first = (w == 12)
-    return {'IR':0.05,'Out':0.0 if first else 0.5,'Doubtful':0.25 if first else 0.8,
+    p = {'IR':0.05,'Out':0.0 if first else 0.5,'Doubtful':0.25 if first else 0.8,
             'Questionable':0.78,'Sus':0.0 if first else 0.9}.get(inj, 0.96 if team else 0.2)
+    # Multi-week injuries: Sleeper's forward weekly projections carry the expected return
+    # timeline (weeks they expect him out project ~0, return weeks project full size), so
+    # availability follows the projection-implied schedule instead of a flat discount.
+    if inj in ('IR','Out','Doubtful','Sus') and not first:
+        fut = [proj.get(str(ww),{}).get(pid) for ww in range(13,18)]
+        fut = [x for x in fut if x]
+        ref = max(fut) if fut else 0
+        if ref > 2:
+            sp = proj.get(str(w),{}).get(pid) or 0
+            p = min(0.9, max(0.05, sp/ref))
+    return p
 
 def mu_of(pid, w):
     pos = pos_of.get(pid,'WR')
