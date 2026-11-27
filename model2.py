@@ -198,6 +198,14 @@ for rid in sorted(rids, key=lambda r:-count[r]['waffle_rr']):
       'waffle_rr_pct':pct(c['waffle_rr']),'waffle_wk15_pct':pct(c['waffle_w15']),
       'last_place_pct':pct(c['last'])})
 (D/'toilet.json').write_text(json.dumps({'rows':toilet}))
+calc_players = {}
+for r in rosters.values():
+    for pid in r['players']:
+        calc_players[pid] = {'m': [round(max(0.5, mu_of(pid, w)), 2) for w in range(13, 18)],
+                             'a': [round(pplay(pid, w), 2) for w in range(13, 18)]}
+(D/'calc.json').write_text(json.dumps({'weeks': list(range(13, 18)),
+  'sd': {p: [round(a, 2), round(b, 3)] for p, (a, b) in sdfit.items()},
+  'players': calc_players}))
 mymu = {pid: round(mu_of(pid,12),1) for pid in rosters[6]['players']}
 matchups = [{'week':12,'teams':[owner[a],owner[b]],
              'win_pct':[round(100*float(np.mean(S[12][a]>=S[12][b])),1),

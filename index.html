@@ -104,6 +104,23 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 .hq-tiles-wk{margin-top:10px}
 #numbers{align-self:start}
 .hq-col{display:flex;flex-direction:column;gap:var(--cds-gap-lg);min-width:0}
+.hq-tc{font-size:var(--cds-font-size-caption)}
+.hq-tc .sides{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:640px){.hq-tc .sides{grid-template-columns:1fr}}
+.hq-tc .side{border:1px solid var(--color-border-line);border-radius:10px;padding:10px;min-width:0}
+.hq-tc .side select{font:inherit;color:var(--color-fg);background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:8px;padding:4px 8px;max-width:100%;margin-bottom:8px}
+.hq-tc .pl{display:flex;align-items:center;gap:7px;padding:2.5px 0;color:var(--color-fg-muted);cursor:pointer}
+.hq-tc .pl input{accent-color:var(--hq-gold);margin:0}
+.hq-tc .pl .mu{margin-left:auto;font-variant-numeric:tabular-nums}
+.hq-tc .plist{max-height:300px;overflow:auto}
+.hq-go{font:inherit;font-weight:var(--cds-font-weight-medium);color:var(--color-bg);background:var(--hq-gold);border:0;border-radius:999px;padding:7px 18px;cursor:pointer;margin-top:12px}
+.hq-go[disabled]{opacity:.5;cursor:default}
+.hq-tcres{margin-top:12px;border-top:1px solid var(--color-border-line);padding-top:10px}
+.hq-tcres table{border-collapse:collapse;width:100%}
+.hq-tcres td,.hq-tcres th{padding:3px 8px 3px 0;text-align:right;font-weight:normal}
+.hq-tcres td:first-child,.hq-tcres th:first-child{text-align:left}
+.hq-tcres .vd{margin:10px 0 0;color:var(--color-fg-muted)}
+.hq-tcres .vd b{color:var(--color-fg)}
 .hq-tiles-wk .hq-tile .v{font-size:23px}
 .hq-tiles-wk .hq-tile .who{display:block;font-size:var(--cds-font-size-caption);font-weight:var(--cds-font-weight-medium);color:var(--color-fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:1px 0 2px}
 .hq-tabbar{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 18px;border-bottom:1px solid var(--color-border-line);padding-bottom:10px}
@@ -303,6 +320,11 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 </div>
 </div>
 <div class="hq-tabv" data-tab="trades" hidden>
+<section id="tradecalc" class="hq-card">
+<h2><span class="dot" style="background:var(--hq-gold)"></span>Trade calculator</h2>
+<p class="hq-sub">Best-ball math, not sticker prices: each side is simulated with and without the deal — byes, injuries, spike weeks and roster fit included. Value is what the trade does to YOUR optimal lineups, weeks 13-17.</p>
+<div class="hq-tc dash-skeleton" data-draw="trade-calc" data-source="matchdetail calc values odds avatars">—</div>
+</section>
 <section id="trades" class="hq-card">
 <h2><span class="dot" style="background:var(--hq-rb)"></span>The trade ledger</h2>
 <p class="hq-sub">Every deal this league has made, graded at today’s values. No appeals.</p>
@@ -630,6 +652,204 @@ dash.calc('league-table', {
       mk('k', k); mk('v', num); mk('who', who); mk('s', s);
       el.append(dv);
     }
+  });
+  const tcState = { a: null, b: null, sa: new Set(), sb: new Set(), res: null, busy: false };
+  dash.draw('trade-calc', (el) => {
+    const det = dash.data('matchdetail');
+    const C = dash.data('calc');
+    const od = dash.data('odds');
+    if (!ready(el, det) || C.status !== 'ok' || !C.data) { if (det.status !== 'loading') el.replaceChildren(); return; }
+    el.replaceChildren();
+    const teams = [...new Set(det.data.map((pl) => pl.team))];
+    if (!tcState.a) tcState.a = teams.includes('adamyeet') ? 'adamyeet' : teams[0];
+    if (!tcState.b || tcState.b === tcState.a) tcState.b = teams.find((t) => t !== tcState.a);
+    const calc = C.data;
+    const roster = (t) => det.data.filter((pl) => pl.team === t);
+    const wkMean = (pid) => {
+      const c = calc.players[pid];
+      if (!c) return 0;
+      let s = 0;
+      for (let i = 0; i < c.m.length; i++) s += c.m[i] * c.a[i];
+      return s / c.m.length;
+    };
+    // --- samplers ---
+    const randn = () => {
+      let u = 0, v2 = 0;
+      while (!u) u = Math.random();
+      while (!v2) v2 = Math.random();
+      return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v2);
+    };
+    const gamma1 = (k) => {
+      const d2 = k - 1 / 3, c2 = 1 / Math.sqrt(9 * d2);
+      for (;;) {
+        let x, v3;
+        do { x = randn(); v3 = 1 + c2 * x; } while (v3 <= 0);
+        v3 = v3 * v3 * v3;
+        const u = Math.random();
+        if (u < 1 - 0.0331 * x * x * x * x) return d2 * v3;
+        if (Math.log(u) < 0.5 * x * x + d2 * (1 - v3 + Math.log(v3))) return d2 * v3;
+      }
+    };
+    const rgamma = (k) => (k >= 1 ? gamma1(k) : gamma1(k + 1) * Math.pow(Math.random(), 1 / k));
+    const posOf = {};
+    for (const pl of det.data) posOf[pl.pid] = pl.pos;
+    const evaluate = () => {
+      const N = 600;
+      const base = { A: roster(tcState.a).map((pl) => pl.pid), B: roster(tcState.b).map((pl) => pl.pid) };
+      const after = {
+        A: base.A.filter((pid) => !tcState.sa.has(pid)).concat([...tcState.sb]),
+        B: base.B.filter((pid) => !tcState.sb.has(pid)).concat([...tcState.sa])
+      };
+      const union = [...new Set(base.A.concat(base.B))];
+      const out = { A: { before: [], after: [] }, B: { before: [], after: [] } };
+      for (let wi = 0; wi < calc.weeks.length; wi++) {
+        const draws = {};
+        for (const pid of union) {
+          const c = calc.players[pid];
+          const arr = new Float64Array(N);
+          if (c && c.m[wi] > 0 && c.a[wi] > 0) {
+            const pos = posOf[pid] || 'WR';
+            const [sa2, sb2] = calc.sd[pos] || [3, 0.4];
+            const mu = c.m[wi], sd = sa2 + sb2 * mu;
+            const shape = (mu / sd) * (mu / sd), scale = sd * sd / mu;
+            for (let n = 0; n < N; n++) arr[n] = Math.random() < c.a[wi] ? rgamma(shape) * scale : 0;
+          }
+          draws[pid] = arr;
+        }
+        const scoreOf = (pids) => {
+          let tot = 0;
+          for (let n = 0; n < N; n++) {
+            const g = { QB: [], RB: [], WR: [], TE: [] };
+            for (const pid of pids) (g[posOf[pid]] || g.WR).push(draws[pid][n]);
+            for (const k2 in g) g[k2].sort((x, y) => y - x);
+            const fx = g.RB.slice(2).concat(g.WR.slice(2), g.TE.slice(1)).sort((x, y) => y - x);
+            tot += (g.QB[0] || 0) + (g.RB[0] || 0) + (g.RB[1] || 0) + (g.WR[0] || 0) + (g.WR[1] || 0) + (g.TE[0] || 0) + (fx[0] || 0) + (fx[1] || 0);
+          }
+          return tot / N;
+        };
+        out.A.before.push(scoreOf(base.A)); out.A.after.push(scoreOf(after.A));
+        out.B.before.push(scoreOf(base.B)); out.B.after.push(scoreOf(after.B));
+      }
+      return out;
+    };
+    // --- UI ---
+    const sides = document.createElement('div');
+    sides.className = 'sides';
+    const buildSide = (key) => {
+      const t = key === 'A' ? tcState.a : tcState.b;
+      const picks = key === 'A' ? tcState.sa : tcState.sb;
+      const box = document.createElement('div');
+      box.className = 'side';
+      const sel = document.createElement('select');
+      for (const tm of teams) {
+        if (key === 'B' && tm === tcState.a) continue;
+        if (key === 'A' && tm === tcState.b) continue;
+        const o = document.createElement('option');
+        o.value = tm; o.textContent = nameOf(tm) + ' (' + tm + ')';
+        if (tm === t) o.selected = true;
+        sel.append(o);
+      }
+      sel.addEventListener('change', () => {
+        if (key === 'A') { tcState.a = sel.value; tcState.sa.clear(); } else { tcState.b = sel.value; tcState.sb.clear(); }
+        tcState.res = null;
+        dash.draw('trade-calc');
+      });
+      box.append(sel);
+      const list = document.createElement('div');
+      list.className = 'plist';
+      for (const pl of roster(t).slice().sort((x, y) => wkMean(y.pid) - wkMean(x.pid))) {
+        const lab = document.createElement('label');
+        lab.className = 'pl';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = picks.has(pl.pid);
+        cb.addEventListener('change', () => { if (cb.checked) picks.add(pl.pid); else picks.delete(pl.pid); tcState.res = null; const rd = el.querySelector('.hq-tcres'); if (rd) rd.remove(); });
+        lab.append(cb, pl.player + ' ', posBadge(pl.pos));
+        const mu = document.createElement('span');
+        mu.className = 'mu';
+        mu.textContent = wkMean(pl.pid).toFixed(1) + '/wk';
+        lab.append(mu);
+        list.append(lab);
+      }
+      box.append(list);
+      return box;
+    };
+    sides.append(buildSide('A'), buildSide('B'));
+    el.append(sides);
+    const go = document.createElement('button');
+    go.className = 'hq-go'; go.type = 'button'; go.textContent = 'Evaluate trade';
+    el.append(go);
+    const render = (out) => {
+      const old = el.querySelector('.hq-tcres');
+      if (old) old.remove();
+      const res = document.createElement('div');
+      res.className = 'hq-tcres';
+      const avg = (arr, i0, i1) => arr.slice(i0, i1).reduce((s, v) => s + v, 0) / (i1 - i0);
+      const sum = (arr) => arr.reduce((s, v) => s + v, 0);
+      const tbl = document.createElement('table');
+      tbl.innerHTML = '';
+      const hdr = document.createElement('tr');
+      for (const htxt of ['', 'Wks 13-14 (seeding)', 'Wks 15-17 (endgame)', 'Season \u0394']) {
+        const th2 = document.createElement('th'); th2.textContent = htxt; hdr.append(th2);
+      }
+      tbl.append(hdr);
+      const rows2 = {};
+      for (const key of ['A', 'B']) {
+        const t = key === 'A' ? tcState.a : tcState.b;
+        const o = out[key];
+        const d12 = avg(o.after, 0, 2) - avg(o.before, 0, 2);
+        const d57 = avg(o.after, 2, 5) - avg(o.before, 2, 5);
+        const dT = sum(o.after) - sum(o.before);
+        rows2[key] = { d12, d57, dT, t };
+        const tr2 = document.createElement('tr');
+        const tdn = document.createElement('td');
+        const ai2 = avatarImg(t, 'hq-av-s');
+        if (ai2) tdn.append(ai2);
+        tdn.append(nameOf(t));
+        tr2.append(tdn);
+        for (const dv of [d12, d57]) {
+          const td2 = document.createElement('td');
+          const bb = document.createElement('b');
+          bb.className = dv > 0.2 ? 'ok' : dv < -0.2 ? 'bad' : '';
+          bb.textContent = (dv >= 0 ? '+' : '') + dv.toFixed(1) + '/wk';
+          td2.append(bb); tr2.append(td2);
+        }
+        const td3 = document.createElement('td');
+        const b3 = document.createElement('b');
+        b3.className = dT > 1 ? 'ok' : dT < -1 ? 'bad' : '';
+        b3.textContent = (dT >= 0 ? '+' : '') + dT.toFixed(1) + ' pts';
+        td3.append(b3); tr2.append(td3);
+        tbl.append(tr2);
+      }
+      res.append(tbl);
+      const vd = document.createElement('p');
+      vd.className = 'vd';
+      const a2 = rows2.A, b2 = rows2.B;
+      const nA = nameOf(a2.t), nB = nameOf(b2.t);
+      const contender = (t) => { const r = (od.data || []).find((x) => x.team === t); return r && Number(r.playoffs_pct) >= 50; };
+      let verdict;
+      if (Math.abs(a2.dT) < 3 && Math.abs(b2.dT) < 3) verdict = 'A wash. Nobody is getting roasted in the group chat over this one.';
+      else if (a2.dT > 3 && b2.dT > 3) verdict = 'Rare win-win: different roster holes, both lineups improve. Someone will still complain.';
+      else if (a2.dT > 3 && b2.dT < -3) verdict = nA + ' is the clear winner here' + (contender(b2.t) ? ', and ' + nB + ' is bleeding points in the weeks that decide everything. Decline, ' + nB + '.' : '. ' + nB + ', at least invoice for the favor.');
+      else if (b2.dT > 3 && a2.dT < -3) verdict = nB + ' is the clear winner here' + (contender(a2.t) ? ', and ' + nA + ' is giving away endgame points. Decline, ' + nA + '.' : '. ' + nA + ', at least invoice for the favor.');
+      else if (a2.dT > 3) verdict = nA + ' comes out ahead; ' + nB + ' roughly treads water. Fine deal if ' + nB + ' likes the players.';
+      else if (b2.dT > 3) verdict = nB + ' comes out ahead; ' + nA + ' roughly treads water. Fine deal if ' + nA + ' likes the players.';
+      else verdict = 'Both sides shade slightly ' + (a2.dT < 0 && b2.dT < 0 ? 'down \u2014 congratulations, you found a trade where everyone loses.' : 'sideways.');
+      const vb = document.createElement('b');
+      vb.textContent = 'Verdict: ';
+      vd.append(vb, verdict + ' (Best-ball marginal value: each side simulated 600 times per week with and without the deal \u2014 roster fit, byes, injuries and spike weeks included.)');
+      res.append(vd);
+      el.append(res);
+    };
+    go.addEventListener('click', () => {
+      if (!tcState.sa.size && !tcState.sb.size) return;
+      go.disabled = true; go.textContent = 'Simulating\u2026';
+      setTimeout(() => {
+        const out = evaluate();
+        go.disabled = false; go.textContent = 'Evaluate trade';
+        render(out);
+      }, 30);
+    });
   });
   dash.draw('trade-ledger', (el) => {
     const g = dash.data('trades');
@@ -1158,7 +1378,7 @@ dash.calc('league-table', {
       const d = await fetch('data.json', { cache: 'no-store' }).then((r) => r.json());
       window.DATA = d;
       window.dashData = { standings: d.standings, values: d.values, waivers: d.waivers, odds: d.odds,
-        matchups: d.matchups, matchdetail: d.players, toilet: d.toilet, avatars: d.avatars || {}, moves: d.moves || {}, trades: d.trades || [], games: d.games || {}, names: d.names || {}, pickups: d.pickups || [] };
+        matchups: d.matchups, matchdetail: d.players, toilet: d.toilet, avatars: d.avatars || {}, moves: d.moves || {}, trades: d.trades || [], games: d.games || {}, names: d.names || {}, pickups: d.pickups || [], calc: d.calc || null };
       let initTeam = d.me;
       try {
         const qp = new URLSearchParams(location.search).get('as');
