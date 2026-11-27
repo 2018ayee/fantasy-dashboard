@@ -843,26 +843,42 @@ dash.calc('league-table', {
       const sumV = (set) => [...set].reduce((s, pid) => s + ((vals2[pid] || [0])[0] || 0), 0);
       const vA = sumV(tcState.sa), vB = sumV(tcState.sb);
       const vDiff = vB - vA; // positive: A receives more market value
+      const tl2 = dash.data('toilet');
+      const odRow = (t) => (od.data || []).find((x) => x.team === t) || {};
+      const tlRow = (t) => ((tl2.status === 'ok' ? (tl2.data || []).find((x) => x.team === t) : null)) || {};
       const phi2 = (x) => {
         const t2 = 1 / (1 + 0.2316419 * Math.abs(x));
         const d3 = 0.3989423 * Math.exp(-x * x / 2);
         const pr = d3 * t2 * (0.3193815 + t2 * (-0.3565638 + t2 * (1.781478 + t2 * (-1.821256 + t2 * 1.330274))));
         return x > 0 ? 1 - pr : pr;
       };
-      const mk = document.createElement('p');
-      mk.className = 'vd';
-      const mb = document.createElement('b');
-      mb.textContent = 'Market check: ';
-      mk.append(mb);
-      const winShift = (phi2((a2.dT / 5) / 30) - 0.5) * 100;
-      let mtxt = nA + ' sends ' + fmt.int(vA) + ' in trade value, ' + nB + ' sends ' + fmt.int(vB) +
-        (Math.abs(vDiff) < 300 ? ' \u2014 the market calls it even.' : ' \u2014 the market gives ' + (vDiff > 0 ? nA : nB) + ' a ' + fmt.int(Math.abs(vDiff)) + ' edge.');
-      mtxt += ' In lineup terms the deal moves ' + nA + '\u2019s weekly head-to-head odds about ' + (winShift >= 0 ? '+' : '') + winShift.toFixed(1) + '%.';
-      if (Math.abs(vDiff) > 400 && Math.abs(a2.dT) > 3 && (vDiff > 0) !== (a2.dT > 0)) {
-        mtxt += ' The market and the lineup math disagree here \u2014 that\u2019s roster fit talking, and fit is what actually scores.';
-      }
-      mk.append(mtxt);
-      res.append(mk);
+      const para = (label, txt) => {
+        const p2 = document.createElement('p');
+        p2.className = 'vd';
+        const b4 = document.createElement('b');
+        b4.textContent = label + ' ';
+        p2.append(b4, txt);
+        return p2;
+      };
+      // Q1: does this actually help the lineup?
+      const shareOf = (key, pid) => Math.round(100 * (out.ct[key + '1'][pid] || 0) / (out.N * calc.weeks.length));
+      const luLine = (key) => {
+        const t = key === 'A' ? tcState.a : tcState.b;
+        const o = out[key];
+        const got = out.sent[key === 'A' ? 'B' : 'A'];
+        const netD = (sum(o.after) - sum(o.before)) / calc.weeks.length;
+        const bits = got.map((pid) => {
+          const pl = byPid[pid] || { player: pid };
+          const sh = shareOf(key, pid);
+          const role = sh >= 60 ? 'a set-and-forget starter (in ' + sh + '% of lineups)'
+            : sh >= 30 ? 'a rotation piece (in ' + sh + '% of lineups)'
+            : 'depth, not points (in just ' + sh + '% of lineups)';
+          return pl.player + ' comes in as ' + role;
+        });
+        const call = netD >= 0.5 ? 'a real upgrade' : netD <= -0.5 ? 'a downgrade' : 'roughly a wash';
+        return nameOf(t) + ': ' + (bits.length ? bits.join('; ') + ' — ' : '') + 'net ' + (netD >= 0 ? '+' : '') + netD.toFixed(2) + ' PPG, ' + call + '.';
+      };
+      res.append(para('Does it help your lineup?', luLine('A') + ' ' + luLine('B')));
       // where the points actually move: lineup-share breakdown per side
       const grid = document.createElement('div');
       grid.className = 'hq-mvgrid';
@@ -921,52 +937,104 @@ dash.calc('league-table', {
       };
       grid.append(sideBreak('A'), sideBreak('B'));
       res.append(grid);
-      // judge each side against its own stakes: points are near zero-sum, objectives are not
-      const tl2 = dash.data('toilet');
+      // Q2: what it does to the races each side is actually in
       const stakes = (t) => {
-        const r = (od.data || []).find((x) => x.team === t) || {};
+        const r = odRow(t);
         const pp2 = Number(r.playoffs_pct) || 0, bye = Number(r.bye_pct) || 0;
-        const tr3 = tl2.status === 'ok' ? (tl2.data || []).find((x) => x.team === t) : null;
-        const waf = tr3 ? Number(tr3.waffle_rr_pct) || 0 : 0;
-        if (pp2 >= 95 && bye >= 90) return { w1: 0.15, w2: 1, why: 'locked into a bye \u2014 only Weeks 15-17 matter' };
+        const waf = Number(tlRow(t).waffle_rr_pct) || 0;
+        if (pp2 >= 95 && bye >= 90) return { w1: 0.15, w2: 1, why: 'locked into a bye — only Weeks 15-17 matter' };
         if (pp2 >= 95) return { w1: 0.7, w2: 1, why: 'playoffs certain, chasing seeding and the title weeks' };
-        if (pp2 >= 15) return { w1: 1, w2: 0.6, why: 'on the bubble \u2014 Weeks 13-14 come first' };
+        if (pp2 >= 15) return { w1: 1, w2: 0.6, why: 'on the bubble — Weeks 13-14 come first' };
         if (waf >= 15) return { w1: 0.1, w2: 1, why: 'playing for Waffle House escape in Weeks 15-17' };
         return { w1: 0.2, w2: 0.3, why: 'playing out the string' };
       };
       const sA = stakes(a2.t), sB = stakes(b2.t);
       const util = (d, s) => s.w1 * 2 * d.d12 + s.w2 * 3 * d.d57;
       const uA = util(a2, sA), uB = util(b2, sB);
-      const stk = document.createElement('p');
-      stk.className = 'vd';
-      const sb3 = document.createElement('b');
-      sb3.textContent = 'Stakes: ';
-      stk.append(sb3, nA + ' is ' + sA.why + '; ' + nB + ' is ' + sB.why + '. The verdict weighs each side\u2019s weeks accordingly.');
-      res.append(stk);
-      // variance is a real reason to trade: favorites buy floor, chasers buy ceiling
+      const raceDesc = (t) => {
+        const r = odRow(t);
+        const pp2 = Number(r.playoffs_pct) || 0, bye = Number(r.bye_pct) || 0, ch = Number(r.champ_pct) || 0;
+        const waf = Number(tlRow(t).waffle_rr_pct) || 0;
+        const parts = [];
+        if (pp2 >= 99) parts.push('playoffs locked');
+        else if (pp2 >= 1) parts.push('playoffs ' + Math.round(pp2) + '%');
+        if (bye >= 3 && bye <= 97) parts.push('bye ' + Math.round(bye) + '%');
+        if (ch >= 10) parts.push('title ' + Math.round(ch) + '%');
+        if (waf >= 5) parts.push('Waffle House ' + Math.round(waf) + '%');
+        return parts.length ? parts.join(', ') : 'no races left to run';
+      };
+      const shiftPct = (d) => (phi2(d / 30) - 0.5) * 100;
+      const oddsLine = (key) => {
+        const row = key === 'A' ? a2 : b2;
+        const s = key === 'A' ? sA : sB;
+        const endgame = s.w2 > s.w1;
+        const dP = endgame ? row.d57 : row.d12;
+        const dS2 = endgame ? row.d12 : row.d57;
+        const wname = endgame ? 'Weeks 15-17' : 'Weeks 13-14';
+        const sh = shiftPct(dP);
+        let land;
+        if (dP >= 0.5) land = 'adds ' + dP.toFixed(2) + ' PPG in ' + wname + ', the weeks that decide it — worth about +' + sh.toFixed(1) + '% per head-to-head';
+        else if (dP <= -0.5) land = 'gives up ' + Math.abs(dP).toFixed(2) + ' PPG in ' + wname + ', exactly where it hurts (' + sh.toFixed(1) + '% per head-to-head)';
+        else land = 'barely moves ' + wname + ', the weeks that decide it';
+        if (Math.abs(dS2) >= 0.8 && (dS2 > 0) !== (dP > 0)) {
+          land += '; the ' + (dS2 > 0 ? 'upside' : 'cost') + ' lands in ' + (endgame ? 'Weeks 13-14' : 'Weeks 15-17') + ', which matter less here';
+        }
+        return nameOf(row.t) + ' (' + raceDesc(row.t) + ') ' + land + '.';
+      };
+      res.append(para('Playoffs and the Waffle House:', oddsLine('A') + ' ' + oddsLine('B')));
+      // Q3: the context — injuries, byes, market price, volatility
+      const ctxBits = [];
+      const injWords = { Out: 'Out', IR: 'on IR', Doubtful: 'Doubtful', Sus: 'suspended' };
+      const injCtx = (pid, toName) => {
+        const pl = byPid[pid];
+        const c = pl && calc.players[pid];
+        if (!pl || !c) return;
+        const maxA = Math.max.apply(null, c.a);
+        const maxM = Math.max.apply(null, c.m);
+        if (injWords[pl.inj]) {
+          if (maxA <= 0.3) {
+            ctxBits.push(pl.player + ' is ' + injWords[pl.inj] + ' with no real return priced in — ' + toName + ' is trading for a jersey');
+          } else {
+            let back = -1;
+            for (let i2 = 0; i2 < c.a.length; i2++) { if (c.a[i2] >= 0.75 * maxA) { back = i2; break; } }
+            if (back === 0) ctxBits.push(pl.player + ' is ' + injWords[pl.inj] + ' today, but priced near full availability from Week ' + calc.weeks[0] + ' on — the injury tag is scarier than the math');
+            else if (back > 0) ctxBits.push(pl.player + ' is ' + injWords[pl.inj] + ' right now but priced to be back around Week ' + calc.weeks[back] + ' — ' + toName + ' is buying the return, the classic buy-low');
+            else ctxBits.push(pl.player + ' carries ' + (pl.inj === 'Sus' ? 'a suspension' : 'an ' + pl.inj + ' tag') + ' the math already prices in');
+          }
+        } else if (pl.inj === 'Questionable') {
+          ctxBits.push(pl.player + ' is Questionable, priced at ' + Math.round(100 * c.a[0]) + '% for this week');
+        }
+        if (maxM > 0) {
+          let zeros = 0, zi = -1;
+          for (let i2 = 0; i2 < c.m.length; i2++) { if (!(c.m[i2] > 0)) { zeros++; zi = i2; } }
+          if (zeros === 1) ctxBits.push(pl.player + '’s Week ' + calc.weeks[zi] + ' bye is already baked into these numbers');
+        }
+      };
+      for (const pid of out.sent.A) injCtx(pid, nB);
+      for (const pid of out.sent.B) injCtx(pid, nA);
+      let mtxt = 'The market (FantasyCalc) has ' + nA + ' sending ' + fmt.int(vA) + ' in value against ' + fmt.int(vB) +
+        (Math.abs(vDiff) < 300 ? ' — a fair price' : ' — a ' + fmt.int(Math.abs(vDiff)) + ' overpay by ' + (vDiff > 0 ? nB : nA) + ' on paper');
+      if (Math.abs(vDiff) > 400 && Math.abs(a2.dT) > 3 && (vDiff > 0) !== (a2.dT > 0)) {
+        mtxt += ', but the lineup math disagrees — that gap is roster fit, and fit is what actually scores';
+      }
+      ctxBits.push(mtxt);
       const mean5 = (arr) => arr.reduce((s, v) => s + v, 0) / arr.length;
       const volLine = (key, n3) => {
         const o = out[key];
         const s0 = mean5(o.sdB), s1 = mean5(o.sdA), dS = s1 - s0;
         if (Math.abs(dS) < 0.6) return null;
         const t = key === 'A' ? tcState.a : tcState.b;
-        const r = (od.data || []).find((x) => x.team === t) || {};
+        const r = odRow(t);
         const champ = Number(r.champ_pct) || 0, pp3 = Number(r.playoffs_pct) || 0;
         let stance;
-        if (champ >= 20) stance = dS > 0 ? 'more boom-bust \u2014 a favorite would rather be steady' : 'steadier \u2014 exactly what a favorite wants';
-        else if (pp3 < 50) stance = dS > 0 ? 'more boom-bust \u2014 chaos is a chaser\u2019s friend' : 'steadier \u2014 but underdogs need variance, not calm';
-        else stance = 'roughly neutral at these stakes';
-        return n3 + ' ' + s0.toFixed(1) + ' \u2192 ' + s1.toFixed(1) + ' (' + (dS >= 0 ? '+' : '') + dS.toFixed(1) + ', ' + stance + ')';
+        if (champ >= 20) stance = dS > 0 ? 'more boom-bust, and a favorite would rather be steady' : 'steadier, exactly what a favorite wants';
+        else if (pp3 < 50) stance = dS > 0 ? 'more boom-bust, and chaos is a chaser’s friend' : 'steadier, but underdogs need variance, not calm';
+        else stance = 'a volatility change that is roughly neutral at these stakes';
+        return n3 + ' gets ' + stance + ' (weekly sd ' + s0.toFixed(1) + ' to ' + s1.toFixed(1) + ')';
       };
-      const vlA = volLine('A', nA), vlB = volLine('B', nB);
-      if (vlA || vlB) {
-        const vp = document.createElement('p');
-        vp.className = 'vd';
-        const vb2 = document.createElement('b');
-        vb2.textContent = 'Volatility (weekly sd): ';
-        vp.append(vb2, [vlA, vlB].filter(Boolean).join('. ') + '.');
-        res.append(vp);
-      }
+      const vls = [volLine('A', nA), volLine('B', nB)].filter(Boolean);
+      for (const v4 of vls) ctxBits.push(v4);
+      res.append(para('The context:', ctxBits.join('. ') + '.'));
       const vd = document.createElement('p');
       vd.className = 'vd';
       const THR = 2.5;
