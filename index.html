@@ -405,7 +405,7 @@ dash.calc('live-proj', {
       const flex = g.RB.slice(2).concat(g.WR.slice(2), g.TE.slice(1)).sort((a, b) => b - a);
       const tot = g.QB.slice(0, 1).concat(g.RB.slice(0, 2), g.WR.slice(0, 2), g.TE.slice(0, 1), flex.slice(0, 2))
         .reduce((s, v) => s + v, 0);
-      return { team, proj_final: Math.round(tot * 10) / 10 };
+      return { team, proj_final: Math.round(tot * 100) / 100 };
     });
   }
 });
@@ -795,7 +795,7 @@ dash.calc('league-table', {
     const players = det.status === 'ok' ? det.data : [];
     const inj = (pl) => ({ Questionable: 'Q', Doubtful: 'D', Out: 'O', IR: 'IR', Sus: 'SUS', PUP: 'PUP', NA: 'NA' })[pl.inj] || '';
     const avail = (pl) => ({ Questionable: 0.78, Doubtful: 0.25, Out: 0, IR: 0.05, Sus: 0.5, PUP: 0.05, NA: 0.5 })[pl.inj] ?? 1;
-    const val = (pl) => (pl.state === 'final' ? Number(pl.pts) : pl.state === 'live' ? Math.max(Number(pl.pts), Number(pl.proj)) : Math.round(Number(pl.proj) * avail(pl) * 10) / 10);
+    const val = (pl) => (pl.state === 'final' ? Number(pl.pts) : pl.state === 'live' ? Math.max(Number(pl.pts), Number(pl.proj)) : Math.round(Number(pl.proj) * avail(pl) * 100) / 100);
     const lpv = (team, fb) => { const row = lp.find((x) => x.team === team); return row ? row.proj_final : fb; };
     const phi = (x) => {
       const t = 1 / (1 + 0.2316419 * Math.abs(x));
@@ -868,8 +868,8 @@ dash.calc('league-table', {
       const teamLive = (t) => players.some((pl) => pl.team === t && pl.state === 'live');
       const sline = (scored, proj, liveNow) => {
         const s = sub.append('span');
-        s.append('b').attr('class', liveNow ? 'golive' : null).style('color', 'var(--color-fg)').style('font-weight', 'var(--cds-font-weight-medium)').text(scored);
-        s.append('span').text(' · ' + proj);
+        s.append('b').attr('class', liveNow ? 'golive' : null).style('color', 'var(--color-fg)').style('font-weight', 'var(--cds-font-weight-medium)').text(Number(scored).toFixed(2));
+        s.append('span').text(' \u00B7 ' + Number(proj).toFixed(2));
       };
       sline(r.live_a, lpv(r.team_a, r.proj_a), teamLive(r.team_a));
       sline(r.live_b, lpv(r.team_b, r.proj_b), teamLive(r.team_b));
@@ -921,12 +921,12 @@ dash.calc('league-table', {
           gl.text(gameLine(pl));
           const v = c.append('span').attr('class', 'vals');
           if (pl.state !== 'upcoming') {
-            const pb = v.append('b').text(pl.pts);
+            const pb = v.append('b').text(Number(pl.pts).toFixed(2));
             if (pl.state === 'live') pb.attr('class', 'golive');
             else pb.attr('class', Number(pl.pts) > Number(pl.proj) ? 'ok' : Number(pl.pts) < Number(pl.proj) ? 'bad' : null);
-            v.append('span').text(' / ' + pl.proj);
+            v.append('span').text(' / ' + Number(pl.proj).toFixed(2));
           }
-          else v.append('span').text(val(pl));
+          else v.append('span').text(Number(val(pl)).toFixed(2));
         };
         const slotRows = (slotsA, slotsB, benchRow) => {
           const n = Math.max(slotsA.length, slotsB.length);
@@ -1067,7 +1067,7 @@ dash.calc('league-table', {
     for (const k in g) g[k].sort((a, b) => b - a);
     const fx = g.RB.slice(2).concat(g.WR.slice(2), g.TE.slice(1)).sort((a, b) => b - a);
     return Math.round(g.QB.slice(0, 1).concat(g.RB.slice(0, 2), g.WR.slice(0, 2), g.TE.slice(0, 1), fx.slice(0, 2))
-      .reduce((s, v) => s + v, 0) * 10) / 10;
+      .reduce((s, v) => s + v, 0) * 100) / 100;
   };
   async function pullLive() {
     const L = window.__live;
@@ -1118,14 +1118,14 @@ dash.calc('league-table', {
         if (p.pid in pts) q.pts = Math.round(pts[p.pid] * 100) / 100;
         if (p.nfl && state[p.nfl]) q.state = state[p.nfl];
         const sl = p.pid in slp ? slp[p.pid] : 0;
-        const base = pj ? Math.max(0, Math.round((p.proj + 0.35 * (sl - p.slp)) * 10) / 10) : p.proj;
+        const base = pj ? Math.max(0, Math.round((p.proj + 0.35 * (sl - p.slp)) * 100) / 100) : p.proj;
         if (q.state === 'live') {
           if (pj && sl === 0 && p.slp >= 3 && Number(q.pts) === 0) {
             q.proj = 0;
             if (!q.inj) q.inj = 'Out';
           } else {
             const f = p.nfl && frac[p.nfl] != null ? frac[p.nfl] : 0.5;
-            q.proj = Math.round((Number(q.pts) + (1 - f) * base) * 10) / 10;
+            q.proj = Math.round((Number(q.pts) + (1 - f) * base) * 100) / 100;
           }
         } else if (q.state === 'upcoming' && pj) {
           q.proj = base;
