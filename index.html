@@ -655,7 +655,7 @@ dash.calc('league-table', {
       el.append(dv);
     }
   });
-  const tcState = { a: null, b: null, sa: new Set(), sb: new Set(), res: null, busy: false };
+  const tcState = { a: null, b: null, sa: new Set(), sb: new Set(), qa: '', qb: '', res: null, busy: false };
   dash.draw('trade-calc', (el) => {
     const det = dash.data('matchdetail');
     const C = dash.data('calc');
@@ -752,22 +752,25 @@ dash.calc('league-table', {
         sel.append(o);
       }
       sel.addEventListener('change', () => {
-        if (key === 'A') { tcState.a = sel.value; tcState.sa.clear(); } else { tcState.b = sel.value; tcState.sb.clear(); }
+        if (key === 'A') { tcState.a = sel.value; tcState.sa.clear(); tcState.qa = ''; } else { tcState.b = sel.value; tcState.sb.clear(); tcState.qb = ''; }
         tcState.res = null;
         dash.draw('trade-calc');
       });
       box.append(sel);
       const srch = document.createElement('input');
       srch.className = 'srch'; srch.type = 'search'; srch.placeholder = 'Search players\u2026';
+      srch.value = key === 'A' ? tcState.qa : tcState.qb;
       box.append(srch);
       const list = document.createElement('div');
       list.className = 'plist';
-      srch.addEventListener('input', () => {
+      const applyFilter = () => {
         const q = srch.value.trim().toLowerCase();
+        if (key === 'A') tcState.qa = srch.value; else tcState.qb = srch.value;
         list.querySelectorAll('.pl').forEach((l) => {
           l.hidden = !!q && !(l.dataset.nm || '').includes(q) && !l.querySelector('input').checked;
         });
-      });
+      };
+      srch.addEventListener('input', applyFilter);
       for (const pl of roster(t).slice().sort((x, y) => wkMean(y.pid) - wkMean(x.pid))) {
         const lab = document.createElement('label');
         lab.className = 'pl';
@@ -784,6 +787,7 @@ dash.calc('league-table', {
         list.append(lab);
       }
       box.append(list);
+      applyFilter();
       return box;
     };
     sides.append(buildSide('A'), buildSide('B'));
@@ -857,11 +861,12 @@ dash.calc('league-table', {
       if (!tcState.sa.size && !tcState.sb.size) return;
       go.disabled = true; go.textContent = 'Simulating\u2026';
       setTimeout(() => {
-        const out = evaluate();
+        tcState.res = evaluate();
         go.disabled = false; go.textContent = 'Evaluate trade';
-        render(out);
+        render(tcState.res);
       }, 30);
     });
+    if (tcState.res) render(tcState.res);
   });
   dash.draw('trade-ledger', (el) => {
     const g = dash.data('trades');
