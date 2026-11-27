@@ -439,7 +439,7 @@ dash.calc('live-proj', {
   fn: (matchdetail) => {
     if (!Array.isArray(matchdetail) || !matchdetail.length) return [];
     const availMap = { Questionable: 0.78, Doubtful: 0.25, Out: 0, IR: 0.05, Sus: 0.5, PUP: 0.05, NA: 0.5 };
-    const val = (r) => (r.state === 'final' ? Number(r.pts) : r.state === 'live' ? Math.max(Number(r.pts), Number(r.proj)) : Number(r.proj) * (availMap[r.inj] ?? 1));
+    const val = (r) => (r.state === 'final' ? Number(r.pts) : r.state === 'live' ? (Number(r.pts) === 0 && (r.inj === 'Out' || r.inj === 'IR' || r.inj === 'Sus') ? 0 : Math.max(Number(r.pts), Number(r.proj))) : Number(r.proj) * (availMap[r.inj] ?? 1));
     const teams = {};
     for (const r of matchdetail) (teams[r.team] = teams[r.team] || []).push(r);
     return Object.entries(teams).map(([team, ps]) => {
@@ -1239,7 +1239,7 @@ dash.calc('league-table', {
     const players = det.status === 'ok' ? det.data : [];
     const inj = (pl) => ({ Questionable: 'Q', Doubtful: 'D', Out: 'O', IR: 'IR', Sus: 'SUS', PUP: 'PUP', NA: 'NA' })[pl.inj] || '';
     const avail = (pl) => ({ Questionable: 0.78, Doubtful: 0.25, Out: 0, IR: 0.05, Sus: 0.5, PUP: 0.05, NA: 0.5 })[pl.inj] ?? 1;
-    const val = (pl) => (pl.state === 'final' ? Number(pl.pts) : pl.state === 'live' ? Math.max(Number(pl.pts), Number(pl.proj)) : Math.round(Number(pl.proj) * avail(pl) * 100) / 100);
+    const val = (pl) => (pl.state === 'final' ? Number(pl.pts) : pl.state === 'live' ? (Number(pl.pts) === 0 && (pl.inj === 'Out' || pl.inj === 'IR' || pl.inj === 'Sus') ? 0 : Math.max(Number(pl.pts), Number(pl.proj))) : Math.round(Number(pl.proj) * avail(pl) * 100) / 100);
     const lpv = (team, fb) => { const row = lp.find((x) => x.team === team); return row ? row.proj_final : fb; };
     const phi = (x) => {
       const t = 1 / (1 + 0.2316419 * Math.abs(x));
@@ -1565,7 +1565,9 @@ dash.calc('league-table', {
         let base = pj ? Math.max(0, Math.round((p.proj + 0.35 * (sl - p.slp)) * 100) / 100) : p.proj;
         if (p.inj && pj && sl > 0) base = Math.round(sl * 100) / 100;
         if (q.state === 'live') {
-          if (pj && sl === 0 && p.slp >= 3 && Number(q.pts) === 0) {
+          if (Number(q.pts) === 0 && (q.inj === 'Out' || q.inj === 'IR' || q.inj === 'Sus')) {
+            q.proj = 0;
+          } else if (pj && sl === 0 && p.slp >= 3 && Number(q.pts) === 0) {
             q.proj = 0;
             if (!q.inj) q.inj = 'Out';
           } else {
