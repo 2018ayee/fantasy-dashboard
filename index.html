@@ -912,7 +912,7 @@ dash.calc('league-table', {
           const nm = c.append('span').attr('class', 'nm');
           if (alignRight) c.style('flex-direction', 'row-reverse');
           nm.text(pl.player);
-          if (pl.state === 'live') nm.append('span').attr('class', 'st').text(' ●');
+          if (pl.state === 'live' && pl.inj !== 'Out' && pl.inj !== 'IR') nm.append('span').attr('class', 'st').text(' ●');
           if (pl.state === 'final') nm.append('span').attr('class', 'dn').text(' ✓');
           const itag = inj(pl);
           if (itag) nm.append('span').attr('class', 'inj' + (itag === 'Q' ? ' q' : '')).text(' ' + itag);
@@ -1120,8 +1120,13 @@ dash.calc('league-table', {
         const sl = p.pid in slp ? slp[p.pid] : 0;
         const base = pj ? Math.max(0, Math.round((p.proj + 0.35 * (sl - p.slp)) * 10) / 10) : p.proj;
         if (q.state === 'live') {
-          const f = p.nfl && frac[p.nfl] != null ? frac[p.nfl] : 0.5;
-          q.proj = Math.round((Number(q.pts) + (1 - f) * base) * 10) / 10;
+          if (pj && sl === 0 && p.slp >= 3 && Number(q.pts) === 0) {
+            q.proj = 0;
+            if (!q.inj) q.inj = 'Out';
+          } else {
+            const f = p.nfl && frac[p.nfl] != null ? frac[p.nfl] : 0.5;
+            q.proj = Math.round((Number(q.pts) + (1 - f) * base) * 10) / 10;
+          }
         } else if (q.state === 'upcoming' && pj) {
           q.proj = base;
           if (sl === 0 && p.slp >= 3) { q.proj = 0; if (!q.inj) q.inj = 'Out'; }
