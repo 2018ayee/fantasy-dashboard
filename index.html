@@ -135,6 +135,13 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 .hq-tcres td,.hq-tcres th{padding:3px 8px 3px 0;text-align:right;font-weight:normal}
 .hq-tcres td:first-child,.hq-tcres th:first-child{text-align:left}
 .hq-tcres .vd{margin:10px 0 0;color:var(--color-fg-muted)}
+.hq-mvgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px;border-top:1px solid var(--color-border-line);padding-top:10px}
+@media (max-width:640px){.hq-mvgrid{grid-template-columns:1fr}}
+.hq-mvgrid h4{margin:0 0 4px;font-size:var(--cds-font-size-caption);color:var(--color-fg)}
+.hq-mvgrid .wkd{color:var(--color-fg-muted);margin:0 0 6px;font-variant-numeric:tabular-nums}
+.hq-mvgrid ul{margin:0;padding:0;list-style:none}
+.hq-mvgrid li{display:flex;justify-content:space-between;gap:8px;padding:2px 0;color:var(--color-fg-muted)}
+.hq-mvgrid li b{font-variant-numeric:tabular-nums}
 .hq-tcres .vd b{color:var(--color-fg)}
 .hq-tiles-wk .hq-tile .v{font-size:23px}
 .hq-tiles-wk .hq-tile .who{display:block;font-size:var(--cds-font-size-caption);font-weight:var(--cds-font-weight-medium);color:var(--color-fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:1px 0 2px}
@@ -734,7 +741,9 @@ dash.calc('league-table', {
         B: fitTo(base.B.filter((pid) => !tcState.sb.has(pid)).concat([...tcState.sa]), base.B.length)
       };
       const union = [...new Set(base.A.concat(base.B, after.A, after.B))];
-      const out = { A: { before: [], after: [] }, B: { before: [], after: [] } };
+      const out = { A: { before: [], after: [] }, B: { before: [], after: [] },
+        cb: { A0: {}, A1: {}, B0: {}, B1: {} }, ct: { A0: {}, A1: {}, B0: {}, B1: {} },
+        N, sent: { A: [...tcState.sa], B: [...tcState.sb] } };
       for (let wi = 0; wi < calc.weeks.length; wi++) {
         const draws = {};
         for (const pid of union) {
@@ -750,19 +759,23 @@ dash.calc('league-table', {
           }
           draws[pid] = arr;
         }
-        const scoreOf = (pids) => {
+        const scoreOf = (pids, contrib, cnt) => {
           let tot = 0;
           for (let n = 0; n < N; n++) {
             const g = { QB: [], RB: [], WR: [], TE: [] };
-            for (const pid of pids) (g[(byPid[pid] || {}).pos] || g.WR).push(draws[pid][n]);
-            for (const k2 in g) g[k2].sort((x, y) => y - x);
-            const fx = g.RB.slice(2).concat(g.WR.slice(2), g.TE.slice(1)).sort((x, y) => y - x);
-            tot += (g.QB[0] || 0) + (g.RB[0] || 0) + (g.RB[1] || 0) + (g.WR[0] || 0) + (g.WR[1] || 0) + (g.TE[0] || 0) + (fx[0] || 0) + (fx[1] || 0);
+            for (const pid of pids) (g[(byPid[pid] || {}).pos] || g.WR).push([draws[pid][n], pid]);
+            for (const k2 in g) g[k2].sort((x, y) => y[0] - x[0]);
+            const chosen = g.QB.slice(0, 1).concat(g.RB.slice(0, 2), g.WR.slice(0, 2), g.TE.slice(0, 1),
+              g.RB.slice(2).concat(g.WR.slice(2), g.TE.slice(1)).sort((x, y) => y[0] - x[0]).slice(0, 2));
+            for (const c2 of chosen) {
+              tot += c2[0];
+              if (contrib) { contrib[c2[1]] = (contrib[c2[1]] || 0) + c2[0]; cnt[c2[1]] = (cnt[c2[1]] || 0) + 1; }
+            }
           }
           return tot / N;
         };
-        out.A.before.push(scoreOf(base.A)); out.A.after.push(scoreOf(after.A));
-        out.B.before.push(scoreOf(base.B)); out.B.after.push(scoreOf(after.B));
+        out.A.before.push(scoreOf(base.A, out.cb.A0, out.ct.A0)); out.A.after.push(scoreOf(after.A, out.cb.A1, out.ct.A1));
+        out.B.before.push(scoreOf(base.B, out.cb.B0, out.ct.B0)); out.B.after.push(scoreOf(after.B, out.cb.B1, out.ct.B1));
       }
       return out;
     };
@@ -839,6 +852,55 @@ dash.calc('league-table', {
       }
       mk.append(mtxt);
       res.append(mk);
+      // where the points actually move: lineup-share breakdown per side
+      const grid = document.createElement('div');
+      grid.className = 'hq-mvgrid';
+      const sideBreak = (key) => {
+        const t = key === 'A' ? tcState.a : tcState.b;
+        const o = out[key];
+        const c0 = out.cb[key + '0'], c1 = out.cb[key + '1'], ct1 = out.ct[key + '1'];
+        const sent = new Set(out.sent[key]);
+        const got = new Set(out.sent[key === 'A' ? 'B' : 'A']);
+        const col = document.createElement('div');
+        const h4 = document.createElement('h4');
+        h4.textContent = 'Where it moves for ' + nameOf(t);
+        col.append(h4);
+        const wkd = document.createElement('p');
+        wkd.className = 'wkd';
+        wkd.textContent = calc.weeks.map((w, i) => {
+          const dd = o.after[i] - o.before[i];
+          return 'W' + w + ' ' + (dd >= 0 ? '+' : '') + dd.toFixed(1);
+        }).join(' \u00B7 ');
+        col.append(wkd);
+        const pidsAll = [...new Set(Object.keys(c0).concat(Object.keys(c1)))];
+        const rows3 = pidsAll.map((pid) => ({ pid, d: ((c1[pid] || 0) - (c0[pid] || 0)) / out.N }))
+          .filter((x) => Math.abs(x.d) >= 1.2)
+          .sort((x, y) => Math.abs(y.d) - Math.abs(x.d))
+          .slice(0, 6);
+        const ul = document.createElement('ul');
+        for (const x of rows3) {
+          const pl = byPid[x.pid];
+          const isRepl = x.pid.indexOf('__repl') === 0;
+          let why;
+          if (isRepl) why = 'waiver-level refill';
+          else if (got.has(x.pid)) why = 'arrives \u2014 in the lineup ' + Math.round(100 * (ct1[x.pid] || 0) / (out.N * calc.weeks.length)) + '% of weeks';
+          else if (sent.has(x.pid)) why = 'leaves';
+          else why = x.d > 0 ? 'picks up the vacated lineup share' : 'gets squeezed out of lineups';
+          const li = document.createElement('li');
+          const nm2 = document.createElement('span');
+          nm2.textContent = (isRepl ? 'Waiver refill' : pl ? pl.player : x.pid) + ' \u00B7 ' + why;
+          const dv2 = document.createElement('b');
+          dv2.className = x.d > 0 ? 'ok' : 'bad';
+          dv2.textContent = (x.d >= 0 ? '+' : '') + x.d.toFixed(1);
+          li.append(nm2, dv2);
+          ul.append(li);
+        }
+        if (!rows3.length) { const li = document.createElement('li'); li.textContent = 'No lineup slot moves by more than a point.'; ul.append(li); }
+        col.append(ul);
+        return col;
+      };
+      grid.append(sideBreak('A'), sideBreak('B'));
+      res.append(grid);
       const vd = document.createElement('p');
       vd.className = 'vd';
       const contender = (t) => { const r = (od.data || []).find((x) => x.team === t); return r && Number(r.playoffs_pct) >= 50; };
