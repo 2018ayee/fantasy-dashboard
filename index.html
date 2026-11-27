@@ -108,7 +108,9 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 .hq-tc .sides{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media (max-width:640px){.hq-tc .sides{grid-template-columns:1fr}}
 .hq-tc .side{border:1px solid var(--color-border-line);border-radius:10px;padding:10px;min-width:0}
-.hq-tc .side select{font:inherit;color:var(--color-fg);background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:8px;padding:4px 8px;max-width:100%;margin-bottom:8px}
+.hq-tc .side select{font:inherit;color:var(--color-fg);background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:8px;padding:4px 8px;max-width:100%;margin-bottom:6px}
+.hq-tc .srch{font:inherit;color:var(--color-fg);background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:8px;padding:4px 10px;width:100%;margin-bottom:6px;box-sizing:border-box}
+.hq-tc .srch::placeholder{color:var(--color-fg-muted)}
 .hq-tc .pl{display:flex;align-items:center;gap:7px;padding:2.5px 0;color:var(--color-fg-muted);cursor:pointer}
 .hq-tc .pl input{accent-color:var(--hq-gold);margin:0}
 .hq-tc .pl .mu{margin-left:auto;font-variant-numeric:tabular-nums}
@@ -755,11 +757,21 @@ dash.calc('league-table', {
         dash.draw('trade-calc');
       });
       box.append(sel);
+      const srch = document.createElement('input');
+      srch.className = 'srch'; srch.type = 'search'; srch.placeholder = 'Search players\u2026';
+      box.append(srch);
       const list = document.createElement('div');
       list.className = 'plist';
+      srch.addEventListener('input', () => {
+        const q = srch.value.trim().toLowerCase();
+        list.querySelectorAll('.pl').forEach((l) => {
+          l.hidden = !!q && !(l.dataset.nm || '').includes(q) && !l.querySelector('input').checked;
+        });
+      });
       for (const pl of roster(t).slice().sort((x, y) => wkMean(y.pid) - wkMean(x.pid))) {
         const lab = document.createElement('label');
         lab.className = 'pl';
+        lab.dataset.nm = (pl.player + ' ' + pl.pos).toLowerCase();
         const cb = document.createElement('input');
         cb.type = 'checkbox';
         cb.checked = picks.has(pl.pid);
