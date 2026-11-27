@@ -337,7 +337,7 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 <div class="hq-tabv" data-tab="trades" hidden>
 <section id="tradecalc" class="hq-card">
 <h2><span class="dot" style="background:var(--hq-gold)"></span>Trade calculator</h2>
-<p class="hq-sub">Best-ball math, not sticker prices: each side is simulated with and without the deal — byes, injuries, spike weeks and roster fit included. Value is what the trade does to YOUR optimal lineups, weeks 13-17.</p>
+<p class="hq-sub">Best-ball math, not sticker prices: each side is simulated with and without the deal — byes, injuries, spike weeks and roster fit included. Value is what the trade does to YOUR optimal lineups, weeks 13-17. Roster caps are honored: spots a consolidation frees refill at waiver level (≈8 PPG flex), and a side taking back extra bodies cuts its weakest to fit.</p>
 <div class="hq-tc dash-skeleton" data-draw="trade-calc" data-source="matchdetail calc values odds avatars">—</div>
 </section>
 <section id="trades" class="hq-card">
@@ -721,19 +721,28 @@ dash.calc('league-table', {
     const evaluate = () => {
       const N = 600;
       const base = { A: roster(tcState.a).map((pl) => pl.pid), B: roster(tcState.b).map((pl) => pl.pid) };
-      const after = {
-        A: base.A.filter((pid) => !tcState.sa.has(pid)).concat([...tcState.sb]),
-        B: base.B.filter((pid) => !tcState.sb.has(pid)).concat([...tcState.sa])
+      // roster caps are real: freed spots refill at waiver level, oversized sides cut their weakest
+      const REPL = '__repl';
+      const fitTo = (lst, cap) => {
+        let arr = lst.slice();
+        if (arr.length > cap) arr = arr.sort((x, y) => wkMean(y) - wkMean(x)).slice(0, cap);
+        while (arr.length < cap) arr.push(REPL + arr.length);
+        return arr;
       };
-      const union = [...new Set(base.A.concat(base.B))];
+      const after = {
+        A: fitTo(base.A.filter((pid) => !tcState.sa.has(pid)).concat([...tcState.sb]), base.A.length),
+        B: fitTo(base.B.filter((pid) => !tcState.sb.has(pid)).concat([...tcState.sa]), base.B.length)
+      };
+      const union = [...new Set(base.A.concat(base.B, after.A, after.B))];
       const out = { A: { before: [], after: [] }, B: { before: [], after: [] } };
       for (let wi = 0; wi < calc.weeks.length; wi++) {
         const draws = {};
         for (const pid of union) {
-          const c = calc.players[pid];
+          const isRepl = pid.indexOf('__repl') === 0;
+          const c = isRepl ? { m: [8, 8, 8, 8, 8], a: [0.96, 0.96, 0.96, 0.96, 0.96] } : calc.players[pid];
           const arr = new Float64Array(N);
           if (c && c.m[wi] > 0 && c.a[wi] > 0) {
-            const pos = (byPid[pid] || {}).pos || 'WR';
+            const pos = isRepl ? 'WR' : (byPid[pid] || {}).pos || 'WR';
             const [sa2, sb2] = calc.sd[pos] || [3, 0.4];
             const mu = c.m[wi], sd = sa2 + sb2 * mu;
             const shape = (mu / sd) * (mu / sd), scale = sd * sd / mu;
