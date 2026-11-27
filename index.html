@@ -116,6 +116,10 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 .hq-tc .pl .mu{margin-left:auto;font-variant-numeric:tabular-nums}
 .hq-tc .plist{max-height:300px;overflow:auto}
 .hq-tc .pl.on{background:color-mix(in srgb,var(--hq-gold) 10%,transparent);border-radius:6px;color:var(--color-fg)}
+.hq-tc .pl[hidden]{display:none}
+.hq .injt{font-size:.85em;font-weight:var(--cds-font-weight-medium);color:#d4574e}
+.hq .injt.q{color:var(--hq-te)}
+.hq-tc .pl .own{color:var(--color-fg-muted);font-size:.9em}
 .hq-tc .pl{padding:2.5px 4px;margin:0 -4px}
 .hq-tc .sends{color:var(--color-fg-muted);margin:0 0 4px}
 .hq-tc .sends b{color:var(--color-fg)}
@@ -681,9 +685,18 @@ dash.calc('league-table', {
     const wkMean = (pid) => {
       const c = calc.players[pid];
       if (!c) return 0;
-      let s = 0;
-      for (let i = 0; i < c.m.length; i++) s += c.m[i] * c.a[i];
-      return s / c.m.length;
+      let s = 0, n = 0;
+      for (let i = 0; i < c.m.length; i++) if (c.a[i] > 0.05) { s += c.m[i]; n++; }
+      return n ? s / n : 0;
+    };
+    const injTag = (i) => ({ Questionable: 'Q', Doubtful: 'D', Out: 'O', IR: 'IR', Sus: 'SUS', PUP: 'PUP', NA: 'NA' })[i] || '';
+    const injEl = (pl) => {
+      const tg = injTag(pl.inj);
+      if (!tg) return null;
+      const e = document.createElement('span');
+      e.className = 'injt' + (tg === 'Q' ? ' q' : '');
+      e.textContent = tg;
+      return e;
     };
     const dealKey = () => JSON.stringify([tcState.a, tcState.b, [...tcState.sa].sort(), [...tcState.sb].sort()]);
     // --- samplers ---
@@ -882,41 +895,67 @@ dash.calc('league-table', {
       lbl.append(lb, ' sends:');
       box.append(lbl);
       const srch = document.createElement('input');
-      srch.className = 'srch'; srch.type = 'search'; srch.placeholder = 'Search players\u2026';
+      srch.className = 'srch'; srch.type = 'search';
+      srch.placeholder = picks.size ? 'Search ' + nameOf(t) + '\u2019s roster\u2026' : 'Search any player in the league\u2026';
       srch.value = key === 'A' ? tcState.qa : tcState.qb;
       box.append(srch);
       const list = document.createElement('div');
       list.className = 'plist';
-      const applyFilter = () => {
+      const renderList = () => {
         const q = srch.value.trim().toLowerCase();
         if (key === 'A') tcState.qa = srch.value; else tcState.qb = srch.value;
-        list.querySelectorAll('.pl').forEach((l) => {
-          l.hidden = !!q && !(l.dataset.nm || '').includes(q) && !l.querySelector('input').checked;
-        });
+        list.replaceChildren();
+        const global = !!q && !picks.size;
+        let rows;
+        if (global) rows = det.data.filter((pl) => (pl.player + ' ' + pl.pos).toLowerCase().includes(q));
+        else rows = roster(t).filter((pl) => !q || picks.has(pl.pid) || (pl.player + ' ' + pl.pos).toLowerCase().includes(q));
+        rows = rows.slice().sort((x, y) => wkMean(y.pid) - wkMean(x.pid)).slice(0, 40);
+        if (!rows.length) {
+          const n2 = document.createElement('p');
+          n2.className = 'sends';
+          n2.textContent = picks.size ? 'No match on ' + nameOf(t) + '\u2019s roster \u2014 clear the picks to search the whole league.' : 'No match.';
+          list.append(n2);
+          return;
+        }
+        for (const pl of rows) {
+          const lab = document.createElement('label');
+          const picked = (pl.team === tcState.a ? tcState.sa : pl.team === tcState.b ? tcState.sb : picks).has(pl.pid);
+          lab.className = 'pl' + (picked ? ' on' : '');
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.checked = picked;
+          cb.addEventListener('change', () => {
+            // a player is always sent by his owner: route the pick to the right side
+            if (pl.team === tcState.a) {
+              if (cb.checked) tcState.sa.add(pl.pid); else tcState.sa.delete(pl.pid);
+            } else if (pl.team === tcState.b) {
+              if (cb.checked) tcState.sb.add(pl.pid); else tcState.sb.delete(pl.pid);
+            } else {
+              if (key === 'A') { tcState.a = pl.team; tcState.sa = new Set([pl.pid]); }
+              else { tcState.b = pl.team; tcState.sb = new Set([pl.pid]); }
+            }
+            tcState.res = null; tcState.resKey = '';
+            dash.draw('trade-calc');
+          });
+          lab.append(cb, pl.player + ' ', posBadge(pl.pos));
+          const it = injEl(pl);
+          if (it) lab.append(' ', it);
+          if (global && pl.team !== t) {
+            const ow = document.createElement('span');
+            ow.className = 'own';
+            ow.textContent = '\u00B7 ' + nameOf(pl.team);
+            lab.append(' ', ow);
+          }
+          const mu = document.createElement('span');
+          mu.className = 'mu';
+          mu.textContent = wkMean(pl.pid).toFixed(2) + ' PPG';
+          lab.append(mu);
+          list.append(lab);
+        }
       };
-      srch.addEventListener('input', applyFilter);
-      for (const pl of roster(t).slice().sort((x, y) => wkMean(y.pid) - wkMean(x.pid))) {
-        const lab = document.createElement('label');
-        lab.className = 'pl' + (picks.has(pl.pid) ? ' on' : '');
-        lab.dataset.nm = (pl.player + ' ' + pl.pos).toLowerCase();
-        const cb = document.createElement('input');
-        cb.type = 'checkbox';
-        cb.checked = picks.has(pl.pid);
-        cb.addEventListener('change', () => {
-          if (cb.checked) picks.add(pl.pid); else picks.delete(pl.pid);
-          lab.classList.toggle('on', cb.checked);
-          drawDeal();
-          scheduleEval();
-        });
-        lab.append(cb, pl.player + ' ', posBadge(pl.pos));
-        const mu = document.createElement('span');
-        mu.className = 'mu';
-        mu.textContent = wkMean(pl.pid).toFixed(2) + ' PPG';
-        lab.append(mu);
-        list.append(lab);
-      }
+      srch.addEventListener('input', renderList);
+      renderList();
       box.append(list);
-      applyFilter();
       return box;
     };
     const deal = document.createElement('div');
@@ -935,9 +974,11 @@ dash.calc('league-table', {
           const ch = document.createElement('span');
           ch.className = 'chip2';
           ch.append(posBadge(pl.pos), pl.player);
+          const it2 = injEl(pl);
+          if (it2) ch.append(' ', it2);
           const x = document.createElement('button');
           x.type = 'button'; x.textContent = '\u2715'; x.setAttribute('aria-label', 'Remove ' + pl.player);
-          x.addEventListener('click', () => { picks.delete(pid); dash.draw('trade-calc'); scheduleEval(); });
+          x.addEventListener('click', () => { picks.delete(pid); tcState.res = null; tcState.resKey = ''; dash.draw('trade-calc'); });
           ch.append(x);
           deal.append(ch);
         }
