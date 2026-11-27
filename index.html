@@ -209,6 +209,37 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 .hq-method{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
 .hq-method summary{cursor:pointer;font-weight:var(--cds-font-weight-medium)}
 .hq-method p{max-width:75ch}
+.pname{cursor:pointer;border-bottom:1px dotted color-mix(in srgb,var(--color-fg-muted) 55%,transparent)}
+.pname:hover{border-bottom-color:var(--color-fg)}
+.hq-pov{position:fixed;inset:0;background:rgba(24,22,16,.5);z-index:70;display:flex;align-items:center;justify-content:center;padding:14px}
+.hq-pcd{background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:14px;max-width:640px;width:100%;max-height:88vh;overflow:auto;box-shadow:0 18px 50px rgba(0,0,0,.35);position:relative;font-size:var(--cds-font-size-body)}
+.hq-pcd .pcload{padding:40px;text-align:center;color:var(--color-fg-muted)}
+.hq-pcd .pcx{position:absolute;top:8px;right:10px;border:0;background:none;font-size:22px;line-height:1;color:var(--color-fg-muted);cursor:pointer;z-index:2;padding:4px}
+.hq-pcd .pchero{display:flex;gap:14px;align-items:flex-end;padding:18px 18px 12px;position:relative;overflow:hidden}
+.hq-pcd .pchero .tlogo{position:absolute;right:-24px;top:-24px;width:160px;opacity:.14;pointer-events:none}
+.hq-pcd .pchero .hs{width:96px;height:auto;border-radius:10px;position:relative}
+.hq-pcd .hx{position:relative;min-width:0}
+.hq-pcd .pcname{margin:0;font-size:22px;font-weight:var(--cds-font-weight-medium);color:var(--color-fg)}
+.hq-pcd .pcsub{color:var(--color-fg-muted);font-size:var(--cds-font-size-caption);margin-top:2px}
+.hq-pcd .pcinj{color:#d4574e;font-size:var(--cds-font-size-caption);font-weight:var(--cds-font-weight-medium);margin-top:2px}
+.hq-pcd .pcown{display:flex;align-items:center;gap:6px;color:var(--color-fg-muted);font-size:var(--cds-font-size-caption);margin-top:6px}
+.hq-pcd .pcbio{display:flex;gap:18px;flex-wrap:wrap;padding:10px 18px;border-top:1px solid var(--color-border-line);border-bottom:1px solid var(--color-border-line)}
+.hq-pcd .pcbio div{font-size:.72rem;color:var(--color-fg-muted);text-transform:uppercase;letter-spacing:.04em}
+.hq-pcd .pcbio b{display:block;color:var(--color-fg);font-size:var(--cds-font-size-body);text-transform:none;letter-spacing:0}
+.hq-pcd .pctiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:8px;padding:12px 18px 6px}
+.hq-pcd .pctiles .t{background:color-mix(in srgb,var(--color-fg) 4%,transparent);border-radius:8px;padding:8px 10px}
+.hq-pcd .pctiles .t span{font-size:.68rem;color:var(--color-fg-muted);display:block;text-transform:uppercase;letter-spacing:.05em}
+.hq-pcd .pctiles .t b{font-size:1.02rem;font-variant-numeric:tabular-nums;color:var(--color-fg)}
+.hq-pcd .pctiles .t .ts{font-size:.72rem;color:var(--color-fg-muted);margin-top:1px}
+.hq-pcd .pcsay{margin:0;padding:4px 18px 10px;color:var(--color-fg-muted);font-size:var(--cds-font-size-caption);font-style:italic}
+.hq-pcd .pclog{padding:0 18px 16px}
+.hq-pcd .pclog table{width:100%;border-collapse:collapse;font-size:var(--cds-font-size-caption)}
+.hq-pcd .pclog th{text-align:left;color:var(--color-fg-muted);font-weight:500;padding:4px 6px;border-bottom:1px solid var(--color-border-line);letter-spacing:.03em}
+.hq-pcd .pclog td{padding:4px 6px;border-bottom:1px solid color-mix(in srgb,var(--color-border-line) 55%,transparent);color:var(--color-fg-muted);font-variant-numeric:tabular-nums}
+.hq-pcd .pclog .r{text-align:right}
+.hq-pcd .pclog td b{color:var(--color-fg)}
+.hq-pcd .dnp{opacity:.5}
+@media (max-width:480px){.hq-pcd .pchero .hs{width:70px}.hq-pcd .statcol{display:none}.hq-pcd .pcbio{gap:12px}}
 </style>
 </head>
 <body>
@@ -923,7 +954,8 @@ dash.calc('league-table', {
           else why = x.d > 0 ? 'picks up the vacated lineup share' : 'gets squeezed out of lineups';
           const li = document.createElement('li');
           const nm2 = document.createElement('span');
-          nm2.textContent = (isRepl ? 'Waiver refill' : pl ? pl.player : x.pid) + ' \u00B7 ' + why;
+          if (!isRepl && pl) nm2.append(pnameEl(pl.player, x.pid)); else nm2.append(isRepl ? 'Waiver refill' : x.pid);
+          nm2.append(' · ' + why);
           const dv2 = document.createElement('b');
           dv2.className = x.d > 0 ? 'ok' : 'bad';
           dv2.textContent = (x.d >= 0 ? '+' : '') + x.d.toFixed(2) + ' PPG';
@@ -1284,7 +1316,7 @@ dash.calc('league-table', {
     for (const r of sorted('pickups-body', g.data.slice())) {
       const tr = document.createElement('tr');
       const nmTd = document.createElement('td');
-      nmTd.textContent = r.player + ' ';
+      nmTd.append(pnameEl(r.player, null), ' ');
       nmTd.append(posBadge(r.pos));
       const byTd = document.createElement('td');
       const ai = avatarImg(r.team, 'hq-av-s');
@@ -1351,12 +1383,12 @@ dash.calc('league-table', {
     const vals = vv.data || {};
     const base = g.data.filter((pl) => pl.team === team).map((pl) => {
       const v = vals[pl.pid] || [0, null, null];
-      return { player: pl.player, pos: pl.pos, pos_rank: v[1], value: v[0], trend_30d: v[2] };
+      return { player: pl.player, pid: pl.pid, pos: pl.pos, pos_rank: v[1], value: v[0], trend_30d: v[2] };
     });
     const rows = filtered('roster-body', sorted('roster-body', base.sort((a, b) => Number(b.value) - Number(a.value))));
     for (const r of rows) {
       const tr = document.createElement('tr');
-      tr.append(td(r.player), tdNode(posBadge(r.pos)), td(r.pos_rank == null ? '\u2014' : String(r.pos_rank), 'r'), td(fmt.int(r.value), 'r'), trend(r.trend_30d));
+      tr.append(tdNode(pnameEl(r.player, r.pid)), tdNode(posBadge(r.pos)), td(r.pos_rank == null ? '\u2014' : String(r.pos_rank), 'r'), td(fmt.int(r.value), 'r'), trend(r.trend_30d));
       tb.append(tr);
     }
   });
@@ -1505,9 +1537,9 @@ dash.calc('league-table', {
             if (itag) nm.append('span').attr('class', 'inj' + (itag === 'Q' ? ' q' : '')).text(itag + ' ');
             if (isLive) nm.append('span').attr('class', 'st').text('● ');
             if (isFinal) nm.append('span').attr('class', 'dn').text('✓ ');
-            nm.append('span').text(pl.player);
+            nm.append('span').attr('class', 'pname').text(pl.player).on('click', () => window.openPlayerCard(pl.pid));
           } else {
-            nm.append('span').text(pl.player);
+            nm.append('span').attr('class', 'pname').text(pl.player).on('click', () => window.openPlayerCard(pl.pid));
             if (isLive) nm.append('span').attr('class', 'st').text(' ●');
             if (isFinal) nm.append('span').attr('class', 'dn').text(' ✓');
             if (itag) nm.append('span').attr('class', 'inj' + (itag === 'Q' ? ' q' : '')).text(' ' + itag);
@@ -1650,6 +1682,171 @@ dash.calc('league-table', {
       th.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act(); } });
     });
   });
+  // ---- player detail card ----
+  const pnameEl = (name, pid) => {
+    const s = document.createElement('span');
+    s.className = 'pname';
+    s.textContent = name;
+    s.addEventListener('click', (e) => {
+      e.stopPropagation();
+      let p = pid;
+      if (!p) { const g = dash.data('matchdetail'); const hit = g.status === 'ok' ? (g.data || []).find((x) => x.player === name) : null; p = hit && hit.pid; }
+      if (p) window.openPlayerCard(p);
+    });
+    return s;
+  };
+  const TEAMCOL = { ARI: '#97233F', ATL: '#A71930', BAL: '#241773', BUF: '#00338D', CAR: '#0085CA', CHI: '#C83803', CIN: '#FB4F14', CLE: '#FF3C00', DAL: '#003594', DEN: '#FB4F14', DET: '#0076B6', GB: '#175E33', HOU: '#A71930', IND: '#002C5F', JAX: '#006778', KC: '#E31837', LAC: '#0080C6', LAR: '#003594', LV: '#A5ACAF', MIA: '#008E97', MIN: '#4F2683', NE: '#002244', NO: '#D3BC8D', NYG: '#0B2265', NYJ: '#125740', PHI: '#004C54', PIT: '#FFB612', SEA: '#69BE28', SF: '#AA0000', TB: '#D50A0A', TEN: '#4B92DB', WAS: '#773141' };
+  const pcCache = new Map();
+  const pcFetch = (u) => fetch(u).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  const pcLoad = (pid) => {
+    if (!pcCache.has(pid)) {
+      pcCache.set(pid, Promise.all([
+        pcFetch('https://api.sleeper.app/players/nfl/' + pid),
+        pcFetch('https://api.sleeper.app/stats/nfl/player/' + pid + '?season_type=regular&season=2026&grouping=week')
+      ]));
+    }
+    return pcCache.get(pid);
+  };
+  const pcEsc = (e) => { if (e.key === 'Escape') pcClose(); };
+  const pcClose = () => { const ov = document.querySelector('.hq-pov'); if (ov) ov.remove(); document.removeEventListener('keydown', pcEsc); };
+  const el2 = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+  const pcStatLine = (pos, s) => {
+    const seg = [];
+    if (pos === 'QB') {
+      seg.push((s.pass_cmp || 0) + '/' + (s.pass_att || 0) + ', ' + (s.pass_yd || 0) + ' yd, ' + (s.pass_td || 0) + ' TD');
+      if (s.pass_int) seg.push(s.pass_int + ' INT');
+      if (s.rush_yd) seg.push(s.rush_yd + ' rush' + (s.rush_td ? ' +' + s.rush_td + ' TD' : ''));
+    } else if (pos === 'RB') {
+      seg.push((s.rush_att || 0) + ' car, ' + (s.rush_yd || 0) + ' yd' + (s.rush_td ? ', ' + s.rush_td + ' TD' : ''));
+      if (s.rec || s.rec_tgt) seg.push((s.rec || 0) + '-' + (s.rec_yd || 0) + ' rec' + (s.rec_td ? ' +' + s.rec_td + ' TD' : ''));
+    } else {
+      seg.push((s.rec || 0) + '/' + (s.rec_tgt || 0) + ' tgt, ' + (s.rec_yd || 0) + ' yd' + (s.rec_td ? ', ' + s.rec_td + ' TD' : ''));
+      if (s.rush_yd) seg.push(s.rush_yd + ' rush' + (s.rush_td ? ' +' + s.rush_td + ' TD' : ''));
+    }
+    return seg.join(' \u00b7 ');
+  };
+  window.openPlayerCard = async (pid) => {
+    pcClose();
+    const det = dash.data('matchdetail');
+    const pl = det.status === 'ok' ? (det.data || []).find((x) => x.pid === pid) : null;
+    const ov = el2('div', 'hq-pov');
+    ov.addEventListener('click', (e) => { if (e.target === ov) pcClose(); });
+    document.addEventListener('keydown', pcEsc);
+    const cd = el2('div', 'hq-pcd');
+    cd.append(el2('p', 'pcload', 'Pulling the file\u2026'));
+    ov.append(cd);
+    document.body.append(ov);
+    const [meta, log] = await pcLoad(pid);
+    if (!document.body.contains(cd)) return;
+    cd.replaceChildren();
+    const xb = el2('button', 'pcx', '\u00d7');
+    xb.setAttribute('aria-label', 'Close');
+    xb.addEventListener('click', pcClose);
+    cd.append(xb);
+    const nflRaw = (meta && meta.team) || (pl && pl.nfl) || '';
+    const nfl = /^[A-Z]{2,3}$/.test(nflRaw) ? nflRaw : '';
+    const col = TEAMCOL[nfl] || '#8a857a';
+    const hero = el2('div', 'pchero');
+    hero.style.background = 'linear-gradient(115deg, color-mix(in srgb, ' + col + ' 30%, var(--color-panel)) 0%, var(--color-panel) 75%)';
+    if (nfl) {
+      const tl = el2('img', 'tlogo');
+      tl.src = 'https://sleepercdn.com/images/team_logos/nfl/' + nfl.toLowerCase() + '.png';
+      tl.alt = ''; tl.onerror = () => tl.remove();
+      hero.append(tl);
+    }
+    const hs = el2('img', 'hs');
+    hs.src = 'https://sleepercdn.com/content/nfl/players/' + pid + '.jpg';
+    hs.alt = ''; hs.onerror = () => hs.remove();
+    hero.append(hs);
+    const hx = el2('div', 'hx');
+    const nameStr = meta ? ((meta.first_name || '') + ' ' + (meta.last_name || '')).trim() : (pl ? pl.player : 'Player ' + pid);
+    hx.append(el2('h3', 'pcname', nameStr));
+    const pos = (meta && meta.position) || (pl && pl.pos) || '';
+    hx.append(el2('div', 'pcsub', [pos, nfl || 'FA', meta && meta.number != null ? '#' + meta.number : null].filter(Boolean).join(' \u00b7 ')));
+    if (meta && meta.injury_status) {
+      hx.append(el2('div', 'pcinj', meta.injury_status + (meta.injury_body_part ? ' \u00b7 ' + meta.injury_body_part : '') + (meta.injury_notes ? ' (' + meta.injury_notes + ')' : '')));
+    }
+    const own = el2('div', 'pcown');
+    if (pl) {
+      const ai = avatarImg(pl.team, 'hq-av-s');
+      if (ai) own.append(ai);
+      own.append('rostered by ' + nameOf(pl.team));
+    } else own.append('free agent');
+    hx.append(own);
+    hero.append(hx);
+    cd.append(hero);
+    const bio = el2('div', 'pcbio');
+    const bioAdd = (lab, v3) => { if (v3 == null || v3 === '') return; const d = el2('div'); d.append(el2('b', null, String(v3)), lab); bio.append(d); };
+    if (meta) {
+      bioAdd('age', meta.age);
+      if (meta.height) { const h = Number(meta.height); bioAdd('height', h > 12 ? Math.floor(h / 12) + '\u2032' + (h % 12) + '\u2033' : meta.height); }
+      if (meta.weight) bioAdd('weight', meta.weight + ' lb');
+      if (meta.years_exp != null) bioAdd('exp', meta.years_exp + ' yr');
+      bioAdd('college', meta.college);
+    }
+    if (bio.children.length) cd.append(bio);
+    const curW = Number(window.DATA && window.DATA.week) || 18;
+    const weeks = [];
+    let ytd = 0, games = 0;
+    const played = [];
+    for (let w = 1; w <= curW; w++) {
+      const e = log ? (log[w] || log[String(w)]) : null;
+      const s = e && e.stats;
+      const act = !!(s && (Number(s.gms_active) > 0 || Number(s.gp) > 0 || Number(s.off_snp) > 0 || s.pts_ppr != null));
+      if (act) { const p = Number(s.pts_ppr) || 0; ytd += p; games++; played.push(p); }
+      if (w < curW || act) weeks.push({ w, e, s, act });
+    }
+    const ppg = games ? ytd / games : 0;
+    const l3 = played.length >= 3 ? played.slice(-3).reduce((x2, y2) => x2 + y2, 0) / 3 : (played.length ? played.reduce((x2, y2) => x2 + y2, 0) / played.length : null);
+    const vv3 = dash.data('values');
+    const mv = vv3.status === 'ok' && vv3.data ? vv3.data[pid] : null;
+    const tiles = el2('div', 'pctiles');
+    const tile = (lab, v4, sub2) => { const t = el2('div', 't'); t.append(el2('span', null, lab), el2('b', null, v4)); if (sub2) t.append(el2('div', 'ts', sub2)); tiles.append(t); };
+    tile('YTD PPR', ytd.toFixed(2), games + (games === 1 ? ' game' : ' games'));
+    tile('PPG (active)', games ? ppg.toFixed(2) : '\u2014');
+    tile('Last 3', l3 == null ? '\u2014' : l3.toFixed(2));
+    if (mv) tile('Market', fmt.int(mv[0]), ((mv[1] && pos) ? pos + ' #' + mv[1] : '') + (mv[2] ? ' \u00b7 ' + (mv[2] > 0 ? '+' : '') + fmt.int(mv[2]) + ' 30d' : ''));
+    if (pl && pl.proj != null) tile('This week', Number(pl.proj).toFixed(2), pl.slp != null ? 'Sleeper ' + Number(pl.slp).toFixed(2) : null);
+    cd.append(tiles);
+    const say = [];
+    if (l3 != null && games >= 4) {
+      if (l3 >= ppg + 3) say.push(l3.toFixed(2) + ' a game over his last three against ' + ppg.toFixed(2) + ' on the season \u2014 the arrow points up');
+      else if (l3 <= ppg - 3) say.push(l3.toFixed(2) + ' a game over his last three against ' + ppg.toFixed(2) + ' on the season \u2014 someone should check on him');
+    }
+    if (mv && mv[2] != null && Math.abs(mv[2]) >= 300) say.push('the market has moved ' + (mv[2] > 0 ? 'up ' : 'down ') + fmt.int(Math.abs(mv[2])) + ' in 30 days' + (mv[2] > 0 ? ', and sellers are listening' : ', which is either a discount or a warning'));
+    if (pl && pl.proj != null && pl.slp != null && Math.abs(Number(pl.proj) - Number(pl.slp)) >= 2.5) {
+      say.push('our model says ' + Number(pl.proj).toFixed(2) + ' this week where Sleeper says ' + Number(pl.slp).toFixed(2) + (Number(pl.proj) > Number(pl.slp) ? ' \u2014 we are the high bid' : ' \u2014 Sleeper is the optimist here'));
+    }
+    if (meta && meta.injury_status && meta.injury_status !== 'Questionable') say.push('currently ' + meta.injury_status + (meta.injury_body_part ? ' (' + String(meta.injury_body_part).toLowerCase() + ')' : '') + ', plan accordingly');
+    if (!say.length) say.push('doing roughly what the projection says, which is the most boring possible outcome');
+    const sayTxt = say.map((t4) => t4.charAt(0).toUpperCase() + t4.slice(1)).join('. ') + '.';
+    cd.append(el2('p', 'pcsay', sayTxt));
+    const lw = el2('div', 'pclog');
+    const tbl3 = el2('table');
+    const hr2 = el2('tr');
+    hr2.append(el2('th', null, 'WK'), el2('th', null, 'OPP'), el2('th', 'statcol', 'Stat line'), el2('th', 'r', 'SNP%'), el2('th', 'r', 'FPTS'));
+    tbl3.append(hr2);
+    for (const row of weeks) {
+      const tr3 = el2('tr');
+      if (!row.act) {
+        tr3.className = 'dnp';
+        tr3.append(el2('td', null, String(row.w)), el2('td', null, row.e ? ((row.e.is_away_team ? '@ ' : 'vs ') + (row.e.opponent || '')) : '\u2014'), el2('td', 'statcol', 'did not play'), el2('td', 'r', '\u2014'), el2('td', 'r', '\u2014'));
+      } else {
+        const s = row.s;
+        const snp = s.off_snp && s.tm_off_snp ? Math.round(100 * s.off_snp / s.tm_off_snp) + '%' : '\u2014';
+        tr3.append(el2('td', null, String(row.w)),
+          el2('td', null, (row.e.is_away_team ? '@ ' : 'vs ') + (row.e.opponent || '')),
+          el2('td', 'statcol', pcStatLine(pos, s)),
+          el2('td', 'r', snp));
+        const ftd = el2('td', 'r');
+        ftd.append(el2('b', null, (Number(s.pts_ppr) || 0).toFixed(2)));
+        tr3.append(ftd);
+      }
+      tbl3.append(tr3);
+    }
+    lw.append(tbl3);
+    cd.append(lw);
+  };
 })();
 </script>
 <script>
