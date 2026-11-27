@@ -925,7 +925,16 @@ dash.calc('league-table', {
           cb.type = 'checkbox';
           cb.checked = picked;
           cb.addEventListener('change', () => {
-            // a player is always sent by his owner: route the pick to the right side
+            tcState.res = null; tcState.resKey = '';
+            // own-roster tick: update in place so the list keeps its scroll position
+            if (pl.team === t) {
+              if (cb.checked) picks.add(pl.pid); else picks.delete(pl.pid);
+              lab.classList.toggle('on', cb.checked);
+              drawDeal();
+              scheduleEval();
+              return;
+            }
+            // a player is always sent by his owner: route the pick, then rebuild
             if (pl.team === tcState.a) {
               if (cb.checked) tcState.sa.add(pl.pid); else tcState.sa.delete(pl.pid);
             } else if (pl.team === tcState.b) {
@@ -934,7 +943,6 @@ dash.calc('league-table', {
               if (key === 'A') { tcState.a = pl.team; tcState.sa = new Set([pl.pid]); }
               else { tcState.b = pl.team; tcState.sb = new Set([pl.pid]); }
             }
-            tcState.res = null; tcState.resKey = '';
             dash.draw('trade-calc');
           });
           lab.append(cb, pl.player + ' ', posBadge(pl.pos));
@@ -955,6 +963,8 @@ dash.calc('league-table', {
       };
       srch.addEventListener('input', renderList);
       renderList();
+      list.addEventListener('scroll', () => { tcState['scroll' + key] = list.scrollTop; });
+      requestAnimationFrame(() => { list.scrollTop = tcState['scroll' + key] || 0; });
       box.append(list);
       return box;
     };
