@@ -115,8 +115,17 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 .hq-tc .pl input{accent-color:var(--hq-gold);margin:0}
 .hq-tc .pl .mu{margin-left:auto;font-variant-numeric:tabular-nums}
 .hq-tc .plist{max-height:300px;overflow:auto}
-.hq-go{font:inherit;font-weight:var(--cds-font-weight-medium);color:var(--color-bg);background:var(--hq-gold);border:0;border-radius:999px;padding:7px 18px;cursor:pointer;margin-top:12px}
-.hq-go[disabled]{opacity:.5;cursor:default}
+.hq-tc .pl.on{background:color-mix(in srgb,var(--hq-gold) 10%,transparent);border-radius:6px;color:var(--color-fg)}
+.hq-tc .pl{padding:2.5px 4px;margin:0 -4px}
+.hq-tc .sends{color:var(--color-fg-muted);margin:0 0 4px}
+.hq-tc .sends b{color:var(--color-fg)}
+.hq-deal{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:12px;min-height:26px}
+.hq-deal .dl{color:var(--color-fg-muted)}
+.hq-deal .chip2{display:inline-flex;align-items:center;gap:5px;background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:999px;padding:2px 8px}
+.hq-deal .chip2 button{font:inherit;background:none;border:0;color:var(--color-fg-muted);cursor:pointer;padding:0 0 0 2px}
+.hq-deal .chip2 button:hover{color:var(--color-bad)}
+.hq-deal .arrow{color:var(--color-fg-muted);padding:0 2px}
+.hq-tcstatus{margin-top:8px;color:var(--color-fg-muted)}
 .hq-tcres{margin-top:12px;border-top:1px solid var(--color-border-line);padding-top:10px}
 .hq-tcres table{border-collapse:collapse;width:100%}
 .hq-tcres td,.hq-tcres th{padding:3px 8px 3px 0;text-align:right;font-weight:normal}
@@ -655,7 +664,7 @@ dash.calc('league-table', {
       el.append(dv);
     }
   });
-  const tcState = { a: null, b: null, sa: new Set(), sb: new Set(), qa: '', qb: '', res: null, busy: false };
+  const tcState = { a: null, b: null, sa: new Set(), sb: new Set(), qa: '', qb: '', res: null, resKey: '', timer: 0 };
   dash.draw('trade-calc', (el) => {
     const det = dash.data('matchdetail');
     const C = dash.data('calc');
@@ -667,6 +676,8 @@ dash.calc('league-table', {
     if (!tcState.b || tcState.b === tcState.a) tcState.b = teams.find((t) => t !== tcState.a);
     const calc = C.data;
     const roster = (t) => det.data.filter((pl) => pl.team === t);
+    const byPid = {};
+    for (const pl of det.data) byPid[pl.pid] = pl;
     const wkMean = (pid) => {
       const c = calc.players[pid];
       if (!c) return 0;
@@ -674,6 +685,7 @@ dash.calc('league-table', {
       for (let i = 0; i < c.m.length; i++) s += c.m[i] * c.a[i];
       return s / c.m.length;
     };
+    const dealKey = () => JSON.stringify([tcState.a, tcState.b, [...tcState.sa].sort(), [...tcState.sb].sort()]);
     // --- samplers ---
     const randn = () => {
       let u = 0, v2 = 0;
@@ -693,8 +705,6 @@ dash.calc('league-table', {
       }
     };
     const rgamma = (k) => (k >= 1 ? gamma1(k) : gamma1(k + 1) * Math.pow(Math.random(), 1 / k));
-    const posOf = {};
-    for (const pl of det.data) posOf[pl.pid] = pl.pos;
     const evaluate = () => {
       const N = 600;
       const base = { A: roster(tcState.a).map((pl) => pl.pid), B: roster(tcState.b).map((pl) => pl.pid) };
@@ -710,7 +720,7 @@ dash.calc('league-table', {
           const c = calc.players[pid];
           const arr = new Float64Array(N);
           if (c && c.m[wi] > 0 && c.a[wi] > 0) {
-            const pos = posOf[pid] || 'WR';
+            const pos = (byPid[pid] || {}).pos || 'WR';
             const [sa2, sb2] = calc.sd[pos] || [3, 0.4];
             const mu = c.m[wi], sd = sa2 + sb2 * mu;
             const shape = (mu / sd) * (mu / sd), scale = sd * sd / mu;
@@ -722,7 +732,7 @@ dash.calc('league-table', {
           let tot = 0;
           for (let n = 0; n < N; n++) {
             const g = { QB: [], RB: [], WR: [], TE: [] };
-            for (const pid of pids) (g[posOf[pid]] || g.WR).push(draws[pid][n]);
+            for (const pid of pids) (g[(byPid[pid] || {}).pos] || g.WR).push(draws[pid][n]);
             for (const k2 in g) g[k2].sort((x, y) => y - x);
             const fx = g.RB.slice(2).concat(g.WR.slice(2), g.TE.slice(1)).sort((x, y) => y - x);
             tot += (g.QB[0] || 0) + (g.RB[0] || 0) + (g.RB[1] || 0) + (g.WR[0] || 0) + (g.WR[1] || 0) + (g.TE[0] || 0) + (fx[0] || 0) + (fx[1] || 0);
@@ -734,76 +744,17 @@ dash.calc('league-table', {
       }
       return out;
     };
-    // --- UI ---
-    const sides = document.createElement('div');
-    sides.className = 'sides';
-    const buildSide = (key) => {
-      const t = key === 'A' ? tcState.a : tcState.b;
-      const picks = key === 'A' ? tcState.sa : tcState.sb;
-      const box = document.createElement('div');
-      box.className = 'side';
-      const sel = document.createElement('select');
-      for (const tm of teams) {
-        if (key === 'B' && tm === tcState.a) continue;
-        if (key === 'A' && tm === tcState.b) continue;
-        const o = document.createElement('option');
-        o.value = tm; o.textContent = nameOf(tm) + ' (' + tm + ')';
-        if (tm === t) o.selected = true;
-        sel.append(o);
-      }
-      sel.addEventListener('change', () => {
-        if (key === 'A') { tcState.a = sel.value; tcState.sa.clear(); tcState.qa = ''; } else { tcState.b = sel.value; tcState.sb.clear(); tcState.qb = ''; }
-        tcState.res = null;
-        dash.draw('trade-calc');
-      });
-      box.append(sel);
-      const srch = document.createElement('input');
-      srch.className = 'srch'; srch.type = 'search'; srch.placeholder = 'Search players\u2026';
-      srch.value = key === 'A' ? tcState.qa : tcState.qb;
-      box.append(srch);
-      const list = document.createElement('div');
-      list.className = 'plist';
-      const applyFilter = () => {
-        const q = srch.value.trim().toLowerCase();
-        if (key === 'A') tcState.qa = srch.value; else tcState.qb = srch.value;
-        list.querySelectorAll('.pl').forEach((l) => {
-          l.hidden = !!q && !(l.dataset.nm || '').includes(q) && !l.querySelector('input').checked;
-        });
-      };
-      srch.addEventListener('input', applyFilter);
-      for (const pl of roster(t).slice().sort((x, y) => wkMean(y.pid) - wkMean(x.pid))) {
-        const lab = document.createElement('label');
-        lab.className = 'pl';
-        lab.dataset.nm = (pl.player + ' ' + pl.pos).toLowerCase();
-        const cb = document.createElement('input');
-        cb.type = 'checkbox';
-        cb.checked = picks.has(pl.pid);
-        cb.addEventListener('change', () => { if (cb.checked) picks.add(pl.pid); else picks.delete(pl.pid); tcState.res = null; const rd = el.querySelector('.hq-tcres'); if (rd) rd.remove(); });
-        lab.append(cb, pl.player + ' ', posBadge(pl.pos));
-        const mu = document.createElement('span');
-        mu.className = 'mu';
-        mu.textContent = wkMean(pl.pid).toFixed(2) + ' PPG';
-        lab.append(mu);
-        list.append(lab);
-      }
-      box.append(list);
-      applyFilter();
-      return box;
-    };
-    sides.append(buildSide('A'), buildSide('B'));
-    el.append(sides);
-    const go = document.createElement('button');
-    go.className = 'hq-go'; go.type = 'button'; go.textContent = 'Evaluate trade';
-    el.append(go);
-    const render = (out) => {
-      const old = el.querySelector('.hq-tcres');
-      if (old) old.remove();
+    // --- results rendering ---
+    const status = document.createElement('p');
+    status.className = 'hq-tcstatus';
+    const resHost = document.createElement('div');
+    const renderRes = (out) => {
+      resHost.replaceChildren();
       const res = document.createElement('div');
       res.className = 'hq-tcres';
       const avg = (arr, i0, i1) => arr.slice(i0, i1).reduce((s, v) => s + v, 0) / (i1 - i0);
       const sum = (arr) => arr.reduce((s, v) => s + v, 0);
       const tbl = document.createElement('table');
-      tbl.innerHTML = '';
       const hdr = document.createElement('tr');
       for (const htxt of ['', 'Wks 13-14 (seeding)', 'Wks 15-17 (endgame)', 'Season \u0394']) {
         const th2 = document.createElement('th'); th2.textContent = htxt; hdr.append(th2);
@@ -838,10 +789,36 @@ dash.calc('league-table', {
         tbl.append(tr2);
       }
       res.append(tbl);
-      const vd = document.createElement('p');
-      vd.className = 'vd';
       const a2 = rows2.A, b2 = rows2.B;
       const nA = nameOf(a2.t), nB = nameOf(b2.t);
+      // market + scale context
+      const vv2 = dash.data('values');
+      const vals2 = vv2.status === 'ok' && vv2.data ? vv2.data : {};
+      const sumV = (set) => [...set].reduce((s, pid) => s + ((vals2[pid] || [0])[0] || 0), 0);
+      const vA = sumV(tcState.sa), vB = sumV(tcState.sb);
+      const vDiff = vB - vA; // positive: A receives more market value
+      const phi2 = (x) => {
+        const t2 = 1 / (1 + 0.2316419 * Math.abs(x));
+        const d3 = 0.3989423 * Math.exp(-x * x / 2);
+        const pr = d3 * t2 * (0.3193815 + t2 * (-0.3565638 + t2 * (1.781478 + t2 * (-1.821256 + t2 * 1.330274))));
+        return x > 0 ? 1 - pr : pr;
+      };
+      const mk = document.createElement('p');
+      mk.className = 'vd';
+      const mb = document.createElement('b');
+      mb.textContent = 'Market check: ';
+      mk.append(mb);
+      const winShift = (phi2((a2.dT / 5) / 30) - 0.5) * 100;
+      let mtxt = nA + ' sends ' + fmt.int(vA) + ' in trade value, ' + nB + ' sends ' + fmt.int(vB) +
+        (Math.abs(vDiff) < 300 ? ' \u2014 the market calls it even.' : ' \u2014 the market gives ' + (vDiff > 0 ? nA : nB) + ' a ' + fmt.int(Math.abs(vDiff)) + ' edge.');
+      mtxt += ' In lineup terms the deal moves ' + nA + '\u2019s weekly head-to-head odds about ' + (winShift >= 0 ? '+' : '') + winShift.toFixed(1) + '%.';
+      if (Math.abs(vDiff) > 400 && Math.abs(a2.dT) > 3 && (vDiff > 0) !== (a2.dT > 0)) {
+        mtxt += ' The market and the lineup math disagree here \u2014 that\u2019s roster fit talking, and fit is what actually scores.';
+      }
+      mk.append(mtxt);
+      res.append(mk);
+      const vd = document.createElement('p');
+      vd.className = 'vd';
       const contender = (t) => { const r = (od.data || []).find((x) => x.team === t); return r && Number(r.playoffs_pct) >= 50; };
       let verdict;
       if (Math.abs(a2.dT) < 3 && Math.abs(b2.dT) < 3) verdict = 'A wash. Nobody is getting roasted in the group chat over this one.';
@@ -853,20 +830,128 @@ dash.calc('league-table', {
       else verdict = 'Both sides shade slightly ' + (a2.dT < 0 && b2.dT < 0 ? 'down \u2014 congratulations, you found a trade where everyone loses.' : 'sideways.');
       const vb = document.createElement('b');
       vb.textContent = 'Verdict: ';
-      vd.append(vb, verdict + ' (Best-ball marginal value: each side simulated 600 times per week with and without the deal \u2014 roster fit, byes, injuries and spike weeks included.)');
+      vd.append(vb, verdict);
       res.append(vd);
-      el.append(res);
+      resHost.append(res);
     };
-    go.addEventListener('click', () => {
-      if (!tcState.sa.size && !tcState.sb.size) return;
-      go.disabled = true; go.textContent = 'Simulating\u2026';
-      setTimeout(() => {
-        tcState.res = evaluate();
-        go.disabled = false; go.textContent = 'Evaluate trade';
-        render(tcState.res);
-      }, 30);
-    });
-    if (tcState.res) render(tcState.res);
+    const scheduleEval = () => {
+      clearTimeout(tcState.timer);
+      const key = dealKey();
+      if (!tcState.sa.size && !tcState.sb.size) {
+        tcState.res = null; tcState.resKey = '';
+        resHost.replaceChildren();
+        status.textContent = 'Pick the players each side sends \u2014 the deal prices itself as you build it.';
+        return;
+      }
+      if (tcState.res && tcState.resKey === key) { status.textContent = ''; renderRes(tcState.res); return; }
+      status.textContent = 'Simulating\u2026';
+      tcState.timer = setTimeout(() => {
+        const out = evaluate();
+        if (dealKey() !== key) return;
+        tcState.res = out; tcState.resKey = key;
+        status.textContent = '';
+        renderRes(out);
+      }, 350);
+    };
+    // --- UI ---
+    const sides = document.createElement('div');
+    sides.className = 'sides';
+    const buildSide = (key) => {
+      const t = key === 'A' ? tcState.a : tcState.b;
+      const picks = key === 'A' ? tcState.sa : tcState.sb;
+      const box = document.createElement('div');
+      box.className = 'side';
+      const sel = document.createElement('select');
+      for (const tm of teams) {
+        if (key === 'B' && tm === tcState.a) continue;
+        if (key === 'A' && tm === tcState.b) continue;
+        const o = document.createElement('option');
+        o.value = tm; o.textContent = nameOf(tm) + ' (' + tm + ')';
+        if (tm === t) o.selected = true;
+        sel.append(o);
+      }
+      sel.addEventListener('change', () => {
+        if (key === 'A') { tcState.a = sel.value; tcState.sa.clear(); tcState.qa = ''; } else { tcState.b = sel.value; tcState.sb.clear(); tcState.qb = ''; }
+        tcState.res = null; tcState.resKey = '';
+        dash.draw('trade-calc');
+      });
+      box.append(sel);
+      const lbl = document.createElement('p');
+      lbl.className = 'sends';
+      const lb = document.createElement('b'); lb.textContent = nameOf(t);
+      lbl.append(lb, ' sends:');
+      box.append(lbl);
+      const srch = document.createElement('input');
+      srch.className = 'srch'; srch.type = 'search'; srch.placeholder = 'Search players\u2026';
+      srch.value = key === 'A' ? tcState.qa : tcState.qb;
+      box.append(srch);
+      const list = document.createElement('div');
+      list.className = 'plist';
+      const applyFilter = () => {
+        const q = srch.value.trim().toLowerCase();
+        if (key === 'A') tcState.qa = srch.value; else tcState.qb = srch.value;
+        list.querySelectorAll('.pl').forEach((l) => {
+          l.hidden = !!q && !(l.dataset.nm || '').includes(q) && !l.querySelector('input').checked;
+        });
+      };
+      srch.addEventListener('input', applyFilter);
+      for (const pl of roster(t).slice().sort((x, y) => wkMean(y.pid) - wkMean(x.pid))) {
+        const lab = document.createElement('label');
+        lab.className = 'pl' + (picks.has(pl.pid) ? ' on' : '');
+        lab.dataset.nm = (pl.player + ' ' + pl.pos).toLowerCase();
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = picks.has(pl.pid);
+        cb.addEventListener('change', () => {
+          if (cb.checked) picks.add(pl.pid); else picks.delete(pl.pid);
+          lab.classList.toggle('on', cb.checked);
+          drawDeal();
+          scheduleEval();
+        });
+        lab.append(cb, pl.player + ' ', posBadge(pl.pos));
+        const mu = document.createElement('span');
+        mu.className = 'mu';
+        mu.textContent = wkMean(pl.pid).toFixed(2) + ' PPG';
+        lab.append(mu);
+        list.append(lab);
+      }
+      box.append(list);
+      applyFilter();
+      return box;
+    };
+    const deal = document.createElement('div');
+    deal.className = 'hq-deal';
+    const drawDeal = () => {
+      deal.replaceChildren();
+      const half = (t, picks) => {
+        const dl = document.createElement('span');
+        dl.className = 'dl';
+        dl.textContent = nameOf(t) + ' sends';
+        deal.append(dl);
+        if (!picks.size) { const n2 = document.createElement('span'); n2.className = 'dl'; n2.textContent = '\u2014'; deal.append(n2); }
+        for (const pid of picks) {
+          const pl = byPid[pid];
+          if (!pl) continue;
+          const ch = document.createElement('span');
+          ch.className = 'chip2';
+          ch.append(posBadge(pl.pos), pl.player);
+          const x = document.createElement('button');
+          x.type = 'button'; x.textContent = '\u2715'; x.setAttribute('aria-label', 'Remove ' + pl.player);
+          x.addEventListener('click', () => { picks.delete(pid); dash.draw('trade-calc'); scheduleEval(); });
+          ch.append(x);
+          deal.append(ch);
+        }
+      };
+      half(tcState.a, tcState.sa);
+      const ar = document.createElement('span');
+      ar.className = 'arrow'; ar.textContent = '\u21C4';
+      deal.append(ar);
+      half(tcState.b, tcState.sb);
+    };
+    sides.append(buildSide('A'), buildSide('B'));
+    el.append(sides, deal, status, resHost);
+    drawDeal();
+    scheduleEval();
   });
   dash.draw('trade-ledger', (el) => {
     const g = dash.data('trades');
