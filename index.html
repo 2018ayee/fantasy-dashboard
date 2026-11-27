@@ -131,6 +131,8 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 .hq-deal .arrow{color:var(--color-fg-muted);padding:0 2px}
 .hq-tcstatus{margin-top:8px;color:var(--color-fg-muted)}
 .hq-tcres{margin-top:12px;border-top:1px solid var(--color-border-line);padding-top:10px}
+.hq-tcres .tblwrap{overflow-x:auto}
+@media (max-width:480px){.hq-tcres td,.hq-tcres th{padding:3px 5px 3px 0}}
 .hq-tcres table{border-collapse:collapse;width:100%}
 .hq-tcres td,.hq-tcres th{padding:3px 8px 3px 0;text-align:right;font-weight:normal}
 .hq-tcres td:first-child,.hq-tcres th:first-child{text-align:left}
@@ -180,6 +182,7 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 .hq-lu .slot-TE{color:var(--hq-te);background:color-mix(in srgb,var(--hq-te) 14%,transparent)}
 .hq-lu .slot-FLX{color:var(--hq-gold);background:color-mix(in srgb,var(--hq-gold) 14%,transparent)}
 .hq-lu .slot-BN{color:var(--color-fg-muted);background:color-mix(in srgb,var(--color-fg-muted) 10%,transparent)}
+.hq-lu > div{min-width:0}
 .hq-lu .pc{display:flex;justify-content:space-between;gap:8px;min-width:0;color:var(--color-fg-muted)}
 .hq-lu .pc .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hq-lu .pc .nm .st{color:var(--color-ok);animation:hq-pulse 1.6s ease-in-out infinite}
@@ -345,7 +348,7 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 <section id="tradecalc" class="hq-card">
 <h2><span class="dot" style="background:var(--hq-gold)"></span>Trade calculator</h2>
 <p class="hq-sub">Best-ball math, not sticker prices: each side is simulated with and without the deal — byes, injuries, spike weeks and roster fit included. Value is what the trade does to YOUR optimal lineups, weeks 13-17. Roster caps are honored: spots a consolidation frees refill at waiver level (≈8 PPG flex), and a side taking back extra bodies cuts its weakest to fit.</p>
-<div class="hq-tc dash-skeleton" data-draw="trade-calc" data-source="matchdetail calc values odds avatars">—</div>
+<div class="hq-tc dash-skeleton" data-draw="trade-calc" data-source="matchdetail calc values odds toilet avatars">—</div>
 </section>
 <section id="trades" class="hq-card">
 <h2><span class="dot" style="background:var(--hq-rb)"></span>The trade ledger</h2>
@@ -789,6 +792,8 @@ dash.calc('league-table', {
       res.className = 'hq-tcres';
       const avg = (arr, i0, i1) => arr.slice(i0, i1).reduce((s, v) => s + v, 0) / (i1 - i0);
       const sum = (arr) => arr.reduce((s, v) => s + v, 0);
+      const tw = document.createElement('div');
+      tw.className = 'tblwrap';
       const tbl = document.createElement('table');
       const hdr = document.createElement('tr');
       for (const htxt of ['', 'Wks 13-14 (seeding)', 'Wks 15-17 (endgame)', 'Season \u0394']) {
@@ -823,7 +828,8 @@ dash.calc('league-table', {
         td3.append(b3); tr2.append(td3);
         tbl.append(tr2);
       }
-      res.append(tbl);
+      tw.append(tbl);
+      res.append(tw);
       const a2 = rows2.A, b2 = rows2.B;
       const nA = nameOf(a2.t), nB = nameOf(b2.t);
       // market + scale context
@@ -901,17 +907,40 @@ dash.calc('league-table', {
       };
       grid.append(sideBreak('A'), sideBreak('B'));
       res.append(grid);
+      // judge each side against its own stakes: points are near zero-sum, objectives are not
+      const tl2 = dash.data('toilet');
+      const stakes = (t) => {
+        const r = (od.data || []).find((x) => x.team === t) || {};
+        const pp2 = Number(r.playoffs_pct) || 0, bye = Number(r.bye_pct) || 0;
+        const tr3 = tl2.status === 'ok' ? (tl2.data || []).find((x) => x.team === t) : null;
+        const waf = tr3 ? Number(tr3.waffle_rr_pct) || 0 : 0;
+        if (pp2 >= 95 && bye >= 90) return { w1: 0.15, w2: 1, why: 'locked into a bye \u2014 only Weeks 15-17 matter' };
+        if (pp2 >= 95) return { w1: 0.7, w2: 1, why: 'playoffs certain, chasing seeding and the title weeks' };
+        if (pp2 >= 15) return { w1: 1, w2: 0.6, why: 'on the bubble \u2014 Weeks 13-14 come first' };
+        if (waf >= 15) return { w1: 0.1, w2: 1, why: 'playing for Waffle House escape in Weeks 15-17' };
+        return { w1: 0.2, w2: 0.3, why: 'playing out the string' };
+      };
+      const sA = stakes(a2.t), sB = stakes(b2.t);
+      const util = (d, s) => s.w1 * 2 * d.d12 + s.w2 * 3 * d.d57;
+      const uA = util(a2, sA), uB = util(b2, sB);
+      const stk = document.createElement('p');
+      stk.className = 'vd';
+      const sb3 = document.createElement('b');
+      sb3.textContent = 'Stakes: ';
+      stk.append(sb3, nA + ' is ' + sA.why + '; ' + nB + ' is ' + sB.why + '. The verdict weighs each side\u2019s weeks accordingly.');
+      res.append(stk);
       const vd = document.createElement('p');
       vd.className = 'vd';
-      const contender = (t) => { const r = (od.data || []).find((x) => x.team === t); return r && Number(r.playoffs_pct) >= 50; };
+      const THR = 2.5;
       let verdict;
-      if (Math.abs(a2.dT) < 3 && Math.abs(b2.dT) < 3) verdict = 'A wash. Nobody is getting roasted in the group chat over this one.';
-      else if (a2.dT > 3 && b2.dT > 3) verdict = 'Rare win-win: different roster holes, both lineups improve. Someone will still complain.';
-      else if (a2.dT > 3 && b2.dT < -3) verdict = nA + ' is the clear winner here' + (contender(b2.t) ? ', and ' + nB + ' is bleeding points in the weeks that decide everything. Decline, ' + nB + '.' : '. ' + nB + ', at least invoice for the favor.');
-      else if (b2.dT > 3 && a2.dT < -3) verdict = nB + ' is the clear winner here' + (contender(a2.t) ? ', and ' + nA + ' is giving away endgame points. Decline, ' + nA + '.' : '. ' + nA + ', at least invoice for the favor.');
-      else if (a2.dT > 3) verdict = nA + ' comes out ahead; ' + nB + ' roughly treads water. Fine deal if ' + nB + ' likes the players.';
-      else if (b2.dT > 3) verdict = nB + ' comes out ahead; ' + nA + ' roughly treads water. Fine deal if ' + nA + ' likes the players.';
-      else verdict = 'Both sides shade slightly ' + (a2.dT < 0 && b2.dT < 0 ? 'down \u2014 congratulations, you found a trade where everyone loses.' : 'sideways.');
+      if (uA > THR && uB > THR) verdict = 'Both sides win the weeks they\u2019re playing for \u2014 ' + nA + ' gains where ' + nA + ' needs it, ' + nB + ' gains where ' + nB + ' needs it. An honest trade; someone will still complain in the chat.';
+      else if (Math.abs(uA) <= THR && Math.abs(uB) <= THR) verdict = 'A wash for what either side is playing for. Nobody is getting roasted over this one.';
+      else if (uA > THR && uB < -THR) verdict = nA + ' is the clear winner: ' + nB + ' gives up points in exactly the weeks ' + nB + ' needs (' + sB.why + '). Decline, ' + nB + '.';
+      else if (uB > THR && uA < -THR) verdict = nB + ' is the clear winner: ' + nA + ' gives up points in exactly the weeks ' + nA + ' needs (' + sA.why + '). Decline, ' + nA + '.';
+      else if (uA > THR) verdict = nA + ' gets real help where it counts; for ' + nB + ' (' + sB.why + ') the cost lands in weeks that barely matter. Defensible for both.';
+      else if (uB > THR) verdict = nB + ' gets real help where it counts; for ' + nA + ' (' + sA.why + ') the cost lands in weeks that barely matter. Defensible for both.';
+      else if (uA < -THR && uB < -THR) verdict = 'Both sides get worse at the thing they\u2019re trying to do. Congratulations on finding a trade where everyone loses.';
+      else verdict = (uA < -THR ? nA : nB) + ' shades down on the weeks that matter to them; the other side roughly treads water. Renegotiate.';
       const vb = document.createElement('b');
       vb.textContent = 'Verdict: ';
       vd.append(vb, verdict);
