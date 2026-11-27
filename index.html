@@ -133,6 +133,14 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 .hq-tcres{margin-top:12px;border-top:1px solid var(--color-border-line);padding-top:10px}
 .hq-tcres .tblwrap{overflow-x:auto}
 @media (max-width:480px){.hq-tcres td,.hq-tcres th{padding:3px 5px 3px 0}}
+@media (max-width:480px){
+.hq-lu{gap:7px 6px;padding:8px 8px;font-size:.78rem}
+.hq-lu .slot{width:28px;font-size:.8em}
+.hq-lu .pc{flex-direction:column !important;gap:1px;align-items:flex-start}
+.hq-lu .pc .nm{white-space:normal !important;width:100%}
+.hq-lu .pc .vals{font-size:.92em}
+.hq-lu .rc .pc{align-items:flex-end}
+}
 .hq-tcres table{border-collapse:collapse;width:100%}
 .hq-tcres td,.hq-tcres th{padding:3px 8px 3px 0;text-align:right;font-weight:normal}
 .hq-tcres td:first-child,.hq-tcres th:first-child{text-align:left}
@@ -1489,12 +1497,21 @@ dash.calc('league-table', {
           const c = host.append('div').attr('class', 'pc');
           if (!pl) { c.append('span').attr('class', 'nm').text('—'); return; }
           const nm = c.append('span').attr('class', 'nm');
-          if (alignRight) c.style('flex-direction', 'row-reverse');
-          nm.text(pl.player);
-          if (pl.state === 'live' && pl.inj !== 'Out' && pl.inj !== 'IR') nm.append('span').attr('class', 'st').text(' ●');
-          if (pl.state === 'final') nm.append('span').attr('class', 'dn').text(' ✓');
+          if (alignRight) { c.style('flex-direction', 'row-reverse'); nm.style('text-align', 'right'); }
+          const isLive = pl.state === 'live' && pl.inj !== 'Out' && pl.inj !== 'IR';
+          const isFinal = pl.state === 'final';
           const itag = inj(pl);
-          if (itag) nm.append('span').attr('class', 'inj' + (itag === 'Q' ? ' q' : '')).text(' ' + itag);
+          if (alignRight) {
+            if (itag) nm.append('span').attr('class', 'inj' + (itag === 'Q' ? ' q' : '')).text(itag + ' ');
+            if (isLive) nm.append('span').attr('class', 'st').text('● ');
+            if (isFinal) nm.append('span').attr('class', 'dn').text('✓ ');
+            nm.append('span').text(pl.player);
+          } else {
+            nm.append('span').text(pl.player);
+            if (isLive) nm.append('span').attr('class', 'st').text(' ●');
+            if (isFinal) nm.append('span').attr('class', 'dn').text(' ✓');
+            if (itag) nm.append('span').attr('class', 'inj' + (itag === 'Q' ? ' q' : '')).text(' ' + itag);
+          }
           const gl = nm.append('span').attr('class', 'gm');
           if (alignRight) gl.style('text-align', 'right');
           gl.text(gameLine(pl));
@@ -1511,10 +1528,10 @@ dash.calc('league-table', {
           const n = Math.max(slotsA.length, slotsB.length);
           for (let i = 0; i < n; i++) {
             const a = slotsA[i], b = slotsB[i];
-            const left = mx.append('div'); if (benchRow) left.attr('class', 'bn');
+            const left = mx.append('div').attr('class', benchRow ? 'lc bn' : 'lc');
             cell(left, a ? (benchRow ? a : a[1]) : null, false);
             mx.append('div').attr('class', 'slot slot-' + (benchRow ? 'BN' : (a ? a[0] : b[0]))).text(benchRow ? 'BN' : (a ? a[0] : b[0]));
-            const right = mx.append('div'); if (benchRow) right.attr('class', 'bn');
+            const right = mx.append('div').attr('class', benchRow ? 'rc bn' : 'rc');
             cell(right, b ? (benchRow ? b : b[1]) : null, true);
           }
         };
