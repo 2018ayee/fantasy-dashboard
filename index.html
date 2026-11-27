@@ -744,7 +744,7 @@ dash.calc('league-table', {
         B: fitTo(base.B.filter((pid) => !tcState.sb.has(pid)).concat([...tcState.sa]), base.B.length)
       };
       const union = [...new Set(base.A.concat(base.B, after.A, after.B))];
-      const out = { A: { before: [], after: [] }, B: { before: [], after: [] },
+      const out = { A: { before: [], after: [], sdB: [], sdA: [] }, B: { before: [], after: [], sdB: [], sdA: [] },
         cb: { A0: {}, A1: {}, B0: {}, B1: {} }, ct: { A0: {}, A1: {}, B0: {}, B1: {} },
         N, sent: { A: [...tcState.sa], B: [...tcState.sb] } };
       for (let wi = 0; wi < calc.weeks.length; wi++) {
@@ -763,22 +763,27 @@ dash.calc('league-table', {
           draws[pid] = arr;
         }
         const scoreOf = (pids, contrib, cnt) => {
-          let tot = 0;
+          let tot = 0, totSq = 0;
           for (let n = 0; n < N; n++) {
             const g = { QB: [], RB: [], WR: [], TE: [] };
             for (const pid of pids) (g[(byPid[pid] || {}).pos] || g.WR).push([draws[pid][n], pid]);
             for (const k2 in g) g[k2].sort((x, y) => y[0] - x[0]);
             const chosen = g.QB.slice(0, 1).concat(g.RB.slice(0, 2), g.WR.slice(0, 2), g.TE.slice(0, 1),
               g.RB.slice(2).concat(g.WR.slice(2), g.TE.slice(1)).sort((x, y) => y[0] - x[0]).slice(0, 2));
+            let sN = 0;
             for (const c2 of chosen) {
-              tot += c2[0];
+              sN += c2[0];
               if (contrib) { contrib[c2[1]] = (contrib[c2[1]] || 0) + c2[0]; cnt[c2[1]] = (cnt[c2[1]] || 0) + 1; }
             }
+            tot += sN; totSq += sN * sN;
           }
-          return tot / N;
+          const m = tot / N;
+          return { m, s: Math.sqrt(Math.max(0, totSq / N - m * m)) };
         };
-        out.A.before.push(scoreOf(base.A, out.cb.A0, out.ct.A0)); out.A.after.push(scoreOf(after.A, out.cb.A1, out.ct.A1));
-        out.B.before.push(scoreOf(base.B, out.cb.B0, out.ct.B0)); out.B.after.push(scoreOf(after.B, out.cb.B1, out.ct.B1));
+        const rA0 = scoreOf(base.A, out.cb.A0, out.ct.A0), rA1 = scoreOf(after.A, out.cb.A1, out.ct.A1);
+        const rB0 = scoreOf(base.B, out.cb.B0, out.ct.B0), rB1 = scoreOf(after.B, out.cb.B1, out.ct.B1);
+        out.A.before.push(rA0.m); out.A.after.push(rA1.m); out.A.sdB.push(rA0.s); out.A.sdA.push(rA1.s);
+        out.B.before.push(rB0.m); out.B.after.push(rB1.m); out.B.sdB.push(rB0.s); out.B.sdA.push(rB1.s);
       }
       return out;
     };
@@ -879,8 +884,8 @@ dash.calc('league-table', {
         }).join(' \u00B7 ');
         col.append(wkd);
         const pidsAll = [...new Set(Object.keys(c0).concat(Object.keys(c1)))];
-        const rows3 = pidsAll.map((pid) => ({ pid, d: ((c1[pid] || 0) - (c0[pid] || 0)) / out.N }))
-          .filter((x) => Math.abs(x.d) >= 1.2)
+        const rows3 = pidsAll.map((pid) => ({ pid, d: ((c1[pid] || 0) - (c0[pid] || 0)) / out.N / calc.weeks.length }))
+          .filter((x) => Math.abs(x.d) >= 0.3)
           .sort((x, y) => Math.abs(y.d) - Math.abs(x.d))
           .slice(0, 6);
         const ul = document.createElement('ul');
@@ -897,11 +902,20 @@ dash.calc('league-table', {
           nm2.textContent = (isRepl ? 'Waiver refill' : pl ? pl.player : x.pid) + ' \u00B7 ' + why;
           const dv2 = document.createElement('b');
           dv2.className = x.d > 0 ? 'ok' : 'bad';
-          dv2.textContent = (x.d >= 0 ? '+' : '') + x.d.toFixed(1);
+          dv2.textContent = (x.d >= 0 ? '+' : '') + x.d.toFixed(2) + ' PPG';
           li.append(nm2, dv2);
           ul.append(li);
         }
-        if (!rows3.length) { const li = document.createElement('li'); li.textContent = 'No lineup slot moves by more than a point.'; ul.append(li); }
+        if (!rows3.length) { const li = document.createElement('li'); li.textContent = 'No lineup slot moves meaningfully.'; ul.append(li); }
+        const netD = (o.after.reduce((s, v) => s + v, 0) - o.before.reduce((s, v) => s + v, 0)) / calc.weeks.length;
+        const liN = document.createElement('li');
+        const nmN = document.createElement('span'); nmN.textContent = 'Net';
+        const dvN = document.createElement('b');
+        dvN.className = netD > 0.2 ? 'ok' : netD < -0.2 ? 'bad' : '';
+        dvN.textContent = (netD >= 0 ? '+' : '') + netD.toFixed(2) + ' PPG';
+        liN.append(nmN, dvN);
+        liN.style.borderTop = '1px solid var(--color-border-line)';
+        ul.append(liN);
         col.append(ul);
         return col;
       };
@@ -929,6 +943,30 @@ dash.calc('league-table', {
       sb3.textContent = 'Stakes: ';
       stk.append(sb3, nA + ' is ' + sA.why + '; ' + nB + ' is ' + sB.why + '. The verdict weighs each side\u2019s weeks accordingly.');
       res.append(stk);
+      // variance is a real reason to trade: favorites buy floor, chasers buy ceiling
+      const mean5 = (arr) => arr.reduce((s, v) => s + v, 0) / arr.length;
+      const volLine = (key, n3) => {
+        const o = out[key];
+        const s0 = mean5(o.sdB), s1 = mean5(o.sdA), dS = s1 - s0;
+        if (Math.abs(dS) < 0.6) return null;
+        const t = key === 'A' ? tcState.a : tcState.b;
+        const r = (od.data || []).find((x) => x.team === t) || {};
+        const champ = Number(r.champ_pct) || 0, pp3 = Number(r.playoffs_pct) || 0;
+        let stance;
+        if (champ >= 20) stance = dS > 0 ? 'more boom-bust \u2014 a favorite would rather be steady' : 'steadier \u2014 exactly what a favorite wants';
+        else if (pp3 < 50) stance = dS > 0 ? 'more boom-bust \u2014 chaos is a chaser\u2019s friend' : 'steadier \u2014 but underdogs need variance, not calm';
+        else stance = 'roughly neutral at these stakes';
+        return n3 + ' ' + s0.toFixed(1) + ' \u2192 ' + s1.toFixed(1) + ' (' + (dS >= 0 ? '+' : '') + dS.toFixed(1) + ', ' + stance + ')';
+      };
+      const vlA = volLine('A', nA), vlB = volLine('B', nB);
+      if (vlA || vlB) {
+        const vp = document.createElement('p');
+        vp.className = 'vd';
+        const vb2 = document.createElement('b');
+        vb2.textContent = 'Volatility (weekly sd): ';
+        vp.append(vb2, [vlA, vlB].filter(Boolean).join('. ') + '.');
+        res.append(vp);
+      }
       const vd = document.createElement('p');
       vd.className = 'vd';
       const THR = 2.5;
