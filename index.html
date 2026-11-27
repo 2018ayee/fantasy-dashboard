@@ -1118,7 +1118,8 @@ dash.calc('league-table', {
         if (p.pid in pts) q.pts = Math.round(pts[p.pid] * 100) / 100;
         if (p.nfl && state[p.nfl]) q.state = state[p.nfl];
         const sl = p.pid in slp ? slp[p.pid] : 0;
-        const base = pj ? Math.max(0, Math.round((p.proj + 0.35 * (sl - p.slp)) * 100) / 100) : p.proj;
+        let base = pj ? Math.max(0, Math.round((p.proj + 0.35 * (sl - p.slp)) * 100) / 100) : p.proj;
+        if (p.inj && pj && sl > 0) base = Math.round(sl * 100) / 100;
         if (q.state === 'live') {
           if (pj && sl === 0 && p.slp >= 3 && Number(q.pts) === 0) {
             q.proj = 0;
