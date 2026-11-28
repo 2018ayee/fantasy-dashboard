@@ -239,11 +239,30 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 .hq-pcd .pclog .r{text-align:right}
 .hq-pcd .pclog td b{color:var(--color-fg)}
 .hq-pcd .dnp{opacity:.5}
+.hq-pcd .pcnews{padding:0 18px 12px}
+.hq-pcd .pcnews h4{margin:0 0 6px;font-size:.62rem;letter-spacing:.09em;text-transform:uppercase;color:var(--color-fg-muted);font-weight:var(--cds-font-weight-medium)}
+.hq-pcd .ni{margin-bottom:9px}
+.hq-pcd .nt{font-size:var(--cds-font-size-caption);color:var(--color-fg);font-weight:var(--cds-font-weight-medium)}
+.hq-pcd .nt a{color:inherit;text-decoration:none;border-bottom:1px dotted color-mix(in srgb,var(--color-fg-muted) 55%,transparent)}
+.hq-pcd .nt a:hover{border-bottom-color:var(--color-fg)}
+.hq-pcd .nd{color:var(--color-fg-muted);font-weight:400}
+.hq-pcd .nb{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);margin-top:2px}
 .hq-pcd .pclog{overflow-x:auto;-webkit-overflow-scrolling:touch}
 .hq-pcd .pclog th{white-space:nowrap}
+.hq-pcd .pclog .ghead th{border-bottom:0;padding:6px 6px 0;font-size:.6rem;letter-spacing:.09em;color:var(--color-fg-muted)}
+.hq-pcd .pclog th.grp{text-align:center}
 .hq-pcd .fpt{cursor:pointer}
-.hq-pcd .fpt b{border-bottom:1px dotted color-mix(in srgb,var(--color-fg-muted) 55%,transparent)}
-.hq-pcd .fpt:hover b{border-bottom-color:var(--color-fg)}
+.hq-pcd b.ok{color:var(--color-ok)}
+.hq-pcd b.bad{color:var(--color-bad)}
+.hq-pcd .up{color:var(--color-ok)}
+.hq-pcd .down{color:var(--color-bad)}
+.hq-pcd .golive{color:var(--color-ok);animation:hq-pulse 1.6s ease-in-out infinite}
+@media (prefers-reduced-motion: reduce){.hq-pcd .golive{animation:none}}
+.hq-pcd .fpt b{display:inline-block;min-width:46px;text-align:center;background:color-mix(in srgb,var(--color-fg) 7%,transparent);border-radius:6px;padding:1px 6px}
+.hq-pcd .fpt b.ok{background:color-mix(in srgb,var(--color-ok) 15%,transparent)}
+.hq-pcd .fpt b.bad{background:color-mix(in srgb,var(--color-bad) 13%,transparent)}
+.hq-pcd .fpt:hover b{outline:1px solid var(--color-border-line)}
+.hq-pcd .brkt td.bad{color:var(--color-bad)}
 .hq-pcd .brk td{background:color-mix(in srgb,var(--color-fg) 3%,transparent)}
 .hq-pcd .brkt{width:auto;min-width:240px;margin:2px 0 4px auto}
 .hq-pcd .brkt td{border-bottom:0;padding:2px 10px;background:none}
@@ -1711,7 +1730,8 @@ dash.calc('league-table', {
     if (!pcCache.has(pid)) {
       pcCache.set(pid, Promise.all([
         pcFetch('https://api.sleeper.app/players/nfl/' + pid),
-        pcFetch('https://api.sleeper.app/stats/nfl/player/' + pid + '?season_type=regular&season=2026&grouping=week')
+        pcFetch('https://api.sleeper.app/stats/nfl/player/' + pid + '?season_type=regular&season=2026&grouping=week'),
+        pcFetch('https://api.sleeper.app/players/nfl/' + pid + '/news')
       ]));
     }
     return pcCache.get(pid);
@@ -1730,7 +1750,7 @@ dash.calc('league-table', {
     cd.append(el2('p', 'pcload', 'Pulling the file\u2026'));
     ov.append(cd);
     document.body.append(ov);
-    const [meta, log] = await pcLoad(pid);
+    const [meta, log, news] = await pcLoad(pid);
     if (!document.body.contains(cd)) return;
     cd.replaceChildren();
     const xb = el2('button', 'pcx', '\u00d7');
@@ -1795,35 +1815,114 @@ dash.calc('league-table', {
     const vv3 = dash.data('values');
     const mv = vv3.status === 'ok' && vv3.data ? vv3.data[pid] : null;
     const tiles = el2('div', 'pctiles');
-    const tile = (lab, v4, sub2) => { const t = el2('div', 't'); t.append(el2('span', null, lab), el2('b', null, v4)); if (sub2) t.append(el2('div', 'ts', sub2)); tiles.append(t); };
+    const tile = (lab, v4, sub2, cls5) => { const t = el2('div', 't'); const bb5 = el2('b', null, v4); if (cls5) bb5.className = cls5; t.append(el2('span', null, lab), bb5); if (sub2) { const d5 = el2('div', 'ts'); if (typeof sub2 === 'string') d5.textContent = sub2; else d5.append(sub2); t.append(d5); } tiles.append(t); };
     tile('YTD PPR', ytd.toFixed(2), games + (games === 1 ? ' game' : ' games'));
     tile('PPG (active)', games ? ppg.toFixed(2) : '\u2014');
-    tile('Last 3', l3 == null ? '\u2014' : l3.toFixed(2));
-    if (mv) tile('Market', fmt.int(mv[0]), ((mv[1] && pos) ? pos + ' #' + mv[1] : '') + (mv[2] ? ' \u00b7 ' + (mv[2] > 0 ? '+' : '') + fmt.int(mv[2]) + ' 30d' : ''));
-    if (pl && pl.proj != null) tile('This week', Number(pl.proj).toFixed(2), pl.slp != null ? 'Sleeper ' + Number(pl.slp).toFixed(2) : null);
+    tile('Last 3', l3 == null ? '\u2014' : l3.toFixed(2), null, l3 != null && games >= 4 ? (l3 >= ppg + 2 ? 'ok' : l3 <= ppg - 2 ? 'bad' : '') : '');
+    if (mv) {
+      const msub = document.createDocumentFragment();
+      if (mv[1] && pos) msub.append(pos + ' #' + mv[1]);
+      if (mv[2]) msub.append(el2('span', mv[2] > 0 ? 'up' : 'down', (mv[1] && pos ? ' \u00b7 ' : '') + (mv[2] > 0 ? '+' : '') + fmt.int(mv[2]) + ' 30d'));
+      tile('Market', fmt.int(mv[0]), msub);
+    }
+    if (pl && (pl.state === 'final' || pl.state === 'live')) {
+      const cw = pl.state === 'final' ? (Number(pl.pts) > Number(pl.proj) ? 'ok' : Number(pl.pts) < Number(pl.proj) ? 'bad' : '') : 'golive';
+      tile('This week', Number(pl.pts).toFixed(2), (pl.state === 'final' ? 'Final' : 'Live') + (pl.proj != null ? ' \u00b7 proj. ' + Number(pl.proj).toFixed(2) : ''), cw);
+    } else if (pl && pl.proj != null) {
+      tile('This week', Number(pl.proj).toFixed(2), 'proj.');
+    }
     cd.append(tiles);
     const say = [];
+    const seed5 = Array.from(String(pid)).reduce((a6, c7) => a6 + c7.charCodeAt(0), 0);
+    const pick = (arr, salt) => arr[(seed5 + salt) % arr.length];
+    const uKey = pos === 'QB' ? 'pass_att' : pos === 'RB' ? 'rush_att' : 'rec_tgt';
+    const uName = pos === 'QB' ? 'attempts' : pos === 'RB' ? 'carries' : 'targets';
+    const actRows = weeks.filter((r4) => r4.act);
+    const avgOf = (arr, f5) => (arr.length ? arr.reduce((x2, y2) => x2 + f5(y2), 0) / arr.length : 0);
+    const uSeas = avgOf(actRows, (r4) => Number(r4.s[uKey]) || 0);
+    const u3 = avgOf(actRows.slice(-3), (r4) => Number(r4.s[uKey]) || 0);
+    const snSeas = avgOf(actRows, (r4) => (r4.s.off_snp && r4.s.tm_off_snp ? 100 * r4.s.off_snp / r4.s.tm_off_snp : 0));
+    const sn3 = avgOf(actRows.slice(-3), (r4) => (r4.s.off_snp && r4.s.tm_off_snp ? 100 * r4.s.off_snp / r4.s.tm_off_snp : 0));
+    const lastG = actRows.length ? actRows[actRows.length - 1] : null;
+    if (lastG && lastG.e && lastG.e.date && games && ppg > 0) {
+      const days = (Date.now() - Date.parse(lastG.e.date)) / 864e5;
+      if (days >= 0 && days <= 5.5) {
+        const s6 = lastG.s;
+        const pts5 = Number(s6.pts_ppr) || 0;
+        const whereAt = (lastG.e.is_away_team ? 'at ' : 'vs ') + (lastG.e.opponent || '?');
+        let hl;
+        if (pos === 'QB') hl = (s6.pass_yd || 0) + ' yds, ' + (s6.pass_td || 0) + ' TD' + (s6.pass_int ? ', ' + s6.pass_int + ' INT' : '') + (s6.rush_yd ? ', ' + s6.rush_yd + ' on the ground' : '');
+        else if (pos === 'RB') hl = (s6.rush_att || 0) + ' car, ' + (s6.rush_yd || 0) + ' yds' + ((s6.rush_td || s6.rec_td) ? ', ' + ((s6.rush_td || 0) + (s6.rec_td || 0)) + ' TD' : '') + (s6.rec ? ', ' + s6.rec + '-' + (s6.rec_yd || 0) + ' rec' : '');
+        else hl = (s6.rec || 0) + '/' + (s6.rec_tgt || 0) + ' for ' + (s6.rec_yd || 0) + ((s6.rec_td || s6.rush_td) ? ', ' + ((s6.rec_td || 0) + (s6.rush_td || 0)) + ' TD' : '');
+        const fresh = days <= 1.5;
+        let tpl;
+        if (pts5 >= ppg * 1.25) tpl = pick(fresh ? ['just hung {p} on {o} ({h})', 'walked out of the {o} game with {p} ({h})', 'detonated for {p} {w} ({h})'] : ['fresh off {p} {w} ({h})', 'coming off a {p}-point day {w} ({h})', 'last seen dropping {p} on {o} ({h})'], 1);
+        else if (pts5 <= ppg * 0.6) tpl = pick(fresh ? ['just face-planted for {p} {w} ({h})', 'served up {p} {w} ({h})', 'ghosted for {p} {w} ({h})'] : ['still washing off that {p}-point outing {w} ({h})', 'limped to {p} {w} last time out ({h})', 'put up {p} {w} ({h}), which we will not speak of again'], 2);
+        else tpl = pick(['went for {p} {w} last time out ({h})', 'a quiet {p} {w} ({h})', 'logged {p} {w} ({h})'], 3);
+        say.push(tpl.replace('{p}', pts5.toFixed(2)).replace('{o}', lastG.e.opponent || '?').replace('{w}', whereAt).replace('{h}', hl));
+      }
+    }
     if (l3 != null && games >= 4) {
-      if (l3 >= ppg + 3) say.push(l3.toFixed(2) + ' a game over his last three against ' + ppg.toFixed(2) + ' on the season \u2014 the arrow points up');
-      else if (l3 <= ppg - 3) say.push(l3.toFixed(2) + ' a game over his last three against ' + ppg.toFixed(2) + ' on the season \u2014 someone should check on him');
+      if (l3 >= ppg + 3) {
+        const hotEnd = pick([' \u2014 the arrow points up', ' \u2014 he is in his bag', ' \u2014 ride it while it lasts'], 4);
+        say.push(l3.toFixed(2) + ' a game over his last three against ' + ppg.toFixed(2) + ' on the season' + (u3 >= uSeas * 1.15 && u3 > 0 ? ', and the usage says it is real: ' + u3.toFixed(1) + ' ' + uName + ' a game lately against ' + uSeas.toFixed(1) + ' all year' : hotEnd));
+      } else if (l3 <= ppg - 3) {
+        let c6 = l3.toFixed(2) + ' a game over his last three against ' + ppg.toFixed(2) + ' on the season';
+        if (u3 <= uSeas * 0.85 && uSeas > 0) c6 += ' \u2014 and it is usage, not luck: ' + uName + ' down to ' + u3.toFixed(1) + ' from ' + uSeas.toFixed(1) + ' a game';
+        else if (sn3 <= snSeas - 8 && snSeas > 0) c6 += ' \u2014 the snaps tell the story, down to ' + Math.round(sn3) + '% from ' + Math.round(snSeas) + '%';
+        else c6 += pick([' on the same workload, which is the bad kind of cold streak', ' with no usage excuse in sight', ' \u2014 same role, fewer points, bad sign'], 5);
+        say.push(c6);
+      }
     }
-    if (mv && mv[2] != null && Math.abs(mv[2]) >= 300) say.push('the market has moved ' + (mv[2] > 0 ? 'up ' : 'down ') + fmt.int(Math.abs(mv[2])) + ' in 30 days' + (mv[2] > 0 ? ', and sellers are listening' : ', which is either a discount or a warning'));
-    if (pl && pl.proj != null && pl.slp != null && Math.abs(Number(pl.proj) - Number(pl.slp)) >= 2.5) {
-      say.push('our model says ' + Number(pl.proj).toFixed(2) + ' this week where Sleeper says ' + Number(pl.slp).toFixed(2) + (Number(pl.proj) > Number(pl.slp) ? ' \u2014 we are the high bid' : ' \u2014 Sleeper is the optimist here'));
+    const hasRanks = actRows.some((r4) => Number(r4.s.pos_rank_ppr) > 0);
+    if (games >= 5 && hasRanks) {
+      const top5 = actRows.filter((r4) => Number(r4.s.pos_rank_ppr) > 0 && Number(r4.s.pos_rank_ppr) <= 5).length;
+      const top12 = actRows.filter((r4) => Number(r4.s.pos_rank_ppr) > 0 && Number(r4.s.pos_rank_ppr) <= 12).length;
+      const duds = actRows.filter((r4) => (Number(r4.s.pts_ppr) || 0) <= ppg * 0.6).length;
+      const dudTxt = duds ? pick([', against ' + duds + ' outright dud' + (duds === 1 ? '' : 's'), ', plus ' + duds + ' game' + (duds === 1 ? '' : 's') + ' you want back', ', and ' + duds + ' no-show' + (duds === 1 ? '' : 's')], 6) : ', with no real duds';
+      say.push('a top-12 ' + pos + ' week in ' + top12 + ' of ' + games + (top5 ? ' (top-5 ' + top5 + ' time' + (top5 === 1 ? '' : 's') + ')' : '') + dudTxt);
     }
-    if (meta && meta.injury_status && meta.injury_status !== 'Questionable') say.push('currently ' + meta.injury_status + (meta.injury_body_part ? ' (' + String(meta.injury_body_part).toLowerCase() + ')' : '') + ', plan accordingly');
+    const tdPts = actRows.reduce((x2, r4) => x2 + 6 * ((Number(r4.s.rush_td) || 0) + (Number(r4.s.rec_td) || 0)) + 4 * (Number(r4.s.pass_td) || 0), 0);
+    if (ytd > 0 && games >= 5 && tdPts / ytd >= 0.45) say.push(Math.round(100 * tdPts / ytd) + '% of his points are touchdowns, which is a lifestyle, not a skill');
+    if (mv && mv[2] != null && Math.abs(mv[2]) >= 300) {
+      const mEnd = mv[2] > 0 ? pick([' \u2014 sell-high window open', ' \u2014 sellers are listening', ' \u2014 the league has noticed'], 7) : pick([' \u2014 a discount or a warning, pick one', ' \u2014 falling knife or free money', ' \u2014 the market is quietly heading for the exits'], 8);
+      say.push('the market has moved ' + (mv[2] > 0 ? 'up ' : 'down ') + fmt.int(Math.abs(mv[2])) + ' in 30 days' + mEnd);
+    }
+    if (pl && pl.proj != null && pl.slp != null && Math.abs(Number(pl.proj) - Number(pl.slp)) >= 2.5) say.push('our model says ' + Number(pl.proj).toFixed(2) + ' this week where Sleeper says ' + Number(pl.slp).toFixed(2));
+    if (meta && meta.injury_status && meta.injury_status !== 'Questionable') say.unshift('currently ' + meta.injury_status + (meta.injury_body_part ? ' (' + String(meta.injury_body_part).toLowerCase() + ')' : ''));
     if (!say.length) say.push('doing roughly what the projection says, which is the most boring possible outcome');
-    const sayTxt = say.map((t4) => t4.charAt(0).toUpperCase() + t4.slice(1)).join('. ') + '.';
+    const sayTxt = say.slice(0, 4).map((t4) => t4.charAt(0).toUpperCase() + t4.slice(1)).join('. ') + '.';
     cd.append(el2('p', 'pcsay', sayTxt));
+    if (Array.isArray(news) && news.length) {
+      const rel5 = (ms) => { const h5 = (Date.now() - ms) / 36e5; return h5 < 1 ? 'just now' : h5 < 24 ? Math.round(h5) + 'h ago' : Math.round(h5 / 24) + 'd ago'; };
+      const nw = el2('div', 'pcnews');
+      nw.append(el2('h4', null, 'News'));
+      for (const it5 of news.slice(0, 2)) {
+        const md5 = it5.metadata || {};
+        const item = el2('div', 'ni');
+        const tl5 = el2('div', 'nt');
+        if (md5.url && /^https:\/\//.test(md5.url)) {
+          const a5 = el2('a', null, String(md5.title || 'Update').trim());
+          a5.href = md5.url; a5.target = '_blank'; a5.rel = 'noopener';
+          tl5.append(a5);
+        } else tl5.append(String(md5.title || 'Update').trim());
+        if (it5.published) tl5.append(el2('span', 'nd', ' \u00b7 ' + rel5(it5.published)));
+        item.append(tl5);
+        const body5 = String(md5.analysis || md5.description || '').trim();
+        if (body5) item.append(el2('div', 'nb', body5.length > 300 ? body5.slice(0, 297) + '\u2026' : body5));
+        nw.append(item);
+      }
+      cd.append(nw);
+    }
     const lw = el2('div', 'pclog');
-    const POSCOLS = {
-      QB: [['CMP', 'pass_cmp'], ['ATT', 'pass_att'], ['YD', 'pass_yd'], ['TD', 'pass_td'], ['INT', 'pass_int'], ['CAR', 'rush_att'], ['RU YD', 'rush_yd'], ['RU TD', 'rush_td']],
-      RB: [['CAR', 'rush_att'], ['YD', 'rush_yd'], ['TD', 'rush_td'], ['TGT', 'rec_tgt'], ['REC', 'rec'], ['RE YD', 'rec_yd'], ['RE TD', 'rec_td']],
-      WR: [['TGT', 'rec_tgt'], ['REC', 'rec'], ['YD', 'rec_yd'], ['TD', 'rec_td'], ['CAR', 'rush_att'], ['RU YD', 'rush_yd'], ['RU TD', 'rush_td']]
-    };
-    POSCOLS.TE = POSCOLS.WR;
-    let cols = POSCOLS[pos] || POSCOLS.WR;
-    cols = cols.filter((c5) => weeks.some((r4) => r4.s && Number(r4.s[c5[1]])));
+    const RUSH = [['CAR', 'rush_att'], ['YD', 'rush_yd'], ['TD', 'rush_td']];
+    const RECV = [['TGT', 'rec_tgt'], ['REC', 'rec'], ['YD', 'rec_yd'], ['TD', 'rec_td']];
+    const PASS = [['CMP', 'pass_cmp'], ['ATT', 'pass_att'], ['YD', 'pass_yd'], ['TD', 'pass_td'], ['INT', 'pass_int']];
+    let groups = pos === 'QB' ? [['PASSING', PASS], ['RUSHING', RUSH]]
+      : pos === 'RB' ? [['RUSHING', RUSH], ['RECEIVING', RECV]]
+      : [['RECEIVING', RECV], ['RUSHING', RUSH]];
+    groups = groups.map((g5) => [g5[0], g5[1].filter((c5) => weeks.some((r4) => r4.s && Number(r4.s[c5[1]])))]).filter((g5) => g5[1].length);
+    const cols = groups.reduce((a6, g5) => a6.concat(g5[1]), []);
     const STATNAME = { pass_yd: 'Pass yds', pass_td: 'Pass TD', pass_int: 'Interception', pass_2pt: '2-pt pass', rush_yd: 'Rush yds', rush_td: 'Rush TD', rush_2pt: '2-pt rush', rec: 'Reception', rec_yd: 'Rec yds', rec_td: 'Rec TD', rec_2pt: '2-pt rec', fum_lost: 'Fumble lost', fum: 'Fumble' };
     const prettyKey = (k) => STATNAME[k] || k.replace(/_/g, ' ');
     let scoringP = null;
@@ -1832,6 +1931,15 @@ dash.calc('league-table', {
       return scoringP;
     };
     const tbl3 = el2('table');
+    const hg = el2('tr', 'ghead');
+    const hpad = el2('th');
+    hpad.colSpan = 2;
+    hg.append(hpad);
+    for (const g5 of groups) { const th5 = el2('th', 'grp', g5[0]); th5.colSpan = g5[1].length; hg.append(th5); }
+    const hfan = el2('th', 'grp', 'FANTASY');
+    hfan.colSpan = 2;
+    hg.append(hfan);
+    tbl3.append(hg);
     const hr2 = el2('tr');
     hr2.append(el2('th', null, 'WK'), el2('th', null, 'OPP'));
     for (const c5 of cols) hr2.append(el2('th', 'r', c5[0]));
@@ -1855,7 +1963,9 @@ dash.calc('league-table', {
       tr3.append(el2('td', 'r', snp));
       const ftd = el2('td', 'r fpt');
       ftd.title = 'Tap for the scoring math';
-      const fb2 = el2('b', null, (Number(s.pts_ppr) || 0).toFixed(2));
+      const pv = Number(s.pts_ppr) || 0;
+      const fb2 = el2('b', null, pv.toFixed(2));
+      if (games && ppg > 0) fb2.className = pv >= ppg * 1.25 ? 'ok' : pv <= ppg * 0.6 ? 'bad' : '';
       ftd.append(fb2);
       tr3.append(ftd);
       tbl3.append(tr3);
@@ -1882,7 +1992,7 @@ dash.calc('league-table', {
           const bt = el2('table', 'brkt');
           for (const it of items) {
             const r5 = el2('tr');
-            r5.append(el2('td', null, it[0]), el2('td', 'r', it[1] + ' \u00d7 ' + (it[2] % 1 ? it[2].toFixed(2) : String(it[2]))), el2('td', 'r', (it[3] >= 0 ? '+' : '') + it[3].toFixed(2)));
+            r5.append(el2('td', null, it[0]), el2('td', 'r', it[1] + ' \u00d7 ' + (it[2] % 1 ? it[2].toFixed(2) : String(it[2]))), el2('td', it[3] < 0 ? 'r bad' : 'r', (it[3] >= 0 ? '+' : '') + it[3].toFixed(2)));
             bt.append(r5);
           }
           const rT = el2('tr', 'tot');
@@ -1957,6 +2067,41 @@ dash.calc('league-table', {
         const v = it && it.stats && it.stats.pts_ppr;
         if (pid != null && v != null) slp[String(pid)] = Number(v);
       });
+      // roster sync: waiver adds, drops and trades land without waiting for the weekly rebuild
+      try {
+        if (!L.rmap) {
+          const [rr2, ur2] = await Promise.all([
+            fetch('https://api.sleeper.app/v1/league/' + DATA.leagueId + '/rosters'),
+            fetch('https://api.sleeper.app/v1/league/' + DATA.leagueId + '/users')
+          ]);
+          if (rr2.ok && ur2.ok) {
+            const rj2 = await rr2.json(), uj2 = await ur2.json();
+            const uname = {};
+            uj2.forEach((u2) => { uname[u2.user_id] = u2.display_name; });
+            L.rmap = {};
+            rj2.forEach((r2) => { L.rmap[r2.roster_id] = uname[r2.owner_id]; });
+          }
+        }
+        if (L.rmap) {
+          L.pmeta = L.pmeta || {};
+          const want = {};
+          mj.forEach((m2) => { const t2 = L.rmap[m2.roster_id]; if (t2) (m2.players || []).forEach((pid2) => { want[pid2] = t2; }); });
+          const have = new Set(DATA.players.map((p2) => p2.pid));
+          const teamsSeen = new Set(Object.values(want));
+          for (const pid2 of Object.keys(want)) {
+            if (have.has(pid2)) continue;
+            if (!(pid2 in L.pmeta)) {
+              try { L.pmeta[pid2] = await fetch('https://api.sleeper.app/players/nfl/' + pid2).then((r3) => (r3.ok ? r3.json() : null)); } catch (e2) { L.pmeta[pid2] = null; }
+            }
+            const md2 = L.pmeta[pid2];
+            if (!md2 || ['QB', 'RB', 'WR', 'TE'].indexOf(md2.position) < 0) continue;
+            const sl2 = pid2 in slp ? slp[pid2] : 0;
+            DATA.players.push({ team: want[pid2], player: ((md2.first_name || '') + ' ' + (md2.last_name || '')).trim(), pos: md2.position, nfl: md2.team || '', proj: sl2, pts: 0, pid: pid2, state: 'upcoming', inj: md2.injury_status || '', slp: sl2 });
+          }
+          DATA.players.forEach((p2) => { if (want[p2.pid] && want[p2.pid] !== p2.team) p2.team = want[p2.pid]; });
+          DATA.players = DATA.players.filter((p2) => !teamsSeen.has(p2.team) || want[p2.pid]);
+        }
+      } catch (e2) { console.error(e2); }
       const players = DATA.players.map((p) => {
         const q = Object.assign({}, p);
         if (p.pid in pts) q.pts = Math.round(pts[p.pid] * 100) / 100;
