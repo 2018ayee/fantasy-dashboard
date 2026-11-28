@@ -47,14 +47,16 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 .hq-tile .k{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);letter-spacing:.04em;text-transform:uppercase}
 .hq-tile .v{font-family:var(--font-anthropic-serif);font-weight:400;font-size:26px;line-height:1.15}
 .hq-tile .s{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
+.hq-tile .v.vok{color:var(--color-ok)}
+.hq-tile .v.vbad{color:var(--color-bad)}
 .hq-card{background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:var(--cds-pad-lg);display:flex;flex-direction:column;gap:var(--cds-gap-md)}
 .hq-sub{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);margin:0}
 .hq-chart{min-height:280px}
 .hq-mini{min-height:120px}
 .hq-tablewrap{overflow-x:auto}
 .hq table{border-collapse:collapse;width:100%;font-size:var(--cds-font-size-body)}
-.hq th{text-align:left;font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);font-weight:var(--cds-font-weight-medium);padding:6px 10px;border-bottom:1px solid var(--color-border-line);white-space:nowrap}
-.hq td{padding:5px 10px;border-bottom:1px solid var(--color-border-line);white-space:nowrap}
+.hq th{text-align:left;font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);font-weight:var(--cds-font-weight-medium);padding:6px 8px;border-bottom:1px solid var(--color-border-line);white-space:nowrap}
+.hq td{padding:5px 8px;border-bottom:1px solid var(--color-border-line);white-space:nowrap}
 .hq td.r,.hq th.r{text-align:right}
 .hq th[data-field]{cursor:pointer;user-select:none}
 .hq th[data-field]:hover{color:var(--color-fg)}
@@ -167,6 +169,8 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 .hq-tr .trg .as{display:flex;justify-content:space-between;gap:8px;color:var(--color-fg-muted)}
 .hq-tr .trg .as b{color:var(--color-fg);font-weight:var(--cds-font-weight-medium)}
 .hq-tr .trg .tot{border-top:1px solid var(--color-border-line);margin-top:4px;padding-top:3px}
+.hq-tr .trg .as b.ok{color:var(--color-ok)}
+.hq-tr .trg .as b.bad{color:var(--color-bad)}
 .hq-tr .trn{margin:10px 0 0;font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
 .hq-tr .trn b{color:var(--color-fg)}
 .hq-lu .pc .nm .gm{display:block;font-size:.84em;color:var(--color-fg-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -641,34 +645,55 @@ dash.calc('league-table', {
     el.append('Team ' + team + label + ' sits at ', b(r.record), ' with the No. ', b(String(vr)), ' roster by trade value');
     if (vr === 1 && vgd.status === 'ok' && vgd.data != null) el.append(', ', b(vgd.data + '%'), ' clear of the field');
     el.append('. ');
-    // situation quip (first match wins)
+    // situation quip (first match wins), phrasing varies by team and week
+    const seedW = Array.from(team).reduce((a2, ch) => a2 + ch.charCodeAt(0), 0) + (Number(window.DATA && window.DATA.week) || 0);
+    const pk = (arr, salt) => arr[(seedW + salt) % arr.length];
+    const emit = (tpl, numStr) => {
+      const parts = tpl.split('{n}');
+      el.append(parts[0]);
+      if (parts.length > 1) { el.append(b(numStr)); el.append(parts[1]); }
+    };
     if (c >= 30 && vr === 1 && crv === 1) {
-      el.append('No. 1 title odds at ', b(Math.round(c) + '%'), ' \u2014 the villain era is going smoothly, thanks for asking.');
+      emit(pk(['No. 1 title odds at {n} \u2014 the villain era is going smoothly, thanks for asking.',
+        'Title odds {n}, best roster in the league, and the group chat has gone suspiciously quiet.',
+        '{n} to win it all. The rest of the league is playing for the group photo.'], 1), Math.round(c) + '%');
     } else if (c >= 30) {
-      el.append('A ', b(Math.round(c) + '%'), ' title shot has the rest of the league playing for second and getting snippy about it.');
+      emit(pk(['A {n} title shot has the rest of the league playing for second and getting snippy about it.',
+        'Carrying a {n} shot at the title and acting humble about it, which fools nobody.',
+        '{n} to win the whole thing \u2014 close enough to taste it, close enough to choke on it.'], 2), Math.round(c) + '%');
     } else if (pp <= 0.5 && waf >= 30) {
-      el.append('The sim played 5,000 seasons and found ', b('zero'), ' with playoffs in them \u2014 but a ', b(Math.round(waf) + '%'), ' shot at the 24-hour Waffle House sentence keeps the season meaningful.');
+      emit(pk(['The sim played 5,000 seasons and found zero with playoffs in them \u2014 but a {n} shot at the 24-hour Waffle House sentence keeps the season meaningful.',
+        'Playoffs: mathematically gone. The real stakes now: a {n} chance of the Waffle House all-nighter.'], 3), Math.round(waf) + '%');
     } else if (pp <= 0.5) {
-      el.append('The sim played 5,000 seasons and found ', b('zero'), ' where this ends well. The draft is only four months away.');
+      emit(pk(['The sim played 5,000 seasons and found zero where this ends well. The draft is only four months away.',
+        'Eliminated in all 5,000 simulated seasons, which is at least consistent.'], 4), '');
     } else if (waf >= 40) {
-      el.append('More urgently: a ', b(Math.round(waf) + '%'), ' chance of the 24-hour Waffle House residency. One waffle, one hour. Start stretching.');
+      emit(pk(['More urgently: a {n} chance of the 24-hour Waffle House residency. One waffle, one hour. Start stretching.',
+        'The playoff math is a side plot; the {n} Waffle House odds are the story. Hydrate.'], 5), Math.round(waf) + '%');
     } else if (vr <= 3 && losses - wins >= 2) {
-      el.append('A top-', b(String(vr)), ' roster with a ', b(r.record), ' record \u2014 tremendous talent, minimal interest in showing up on Sundays.');
+      emit(pk(['A top-{n} roster with a losing record \u2014 tremendous talent, minimal interest in showing up on Sundays.',
+        'Top-{n} roster, bottom-half record: the most expensive way to lose every week.'], 6), String(vr));
     } else if (pp >= 99.5 && bye >= 70) {
-      el.append('Playoffs locked, bye odds at ', b(Math.round(bye) + '%'), ' \u2014 the regular season is basically over; try not to get anyone hurt.');
+      emit(pk(['Playoffs locked, bye odds at {n} \u2014 the regular season is basically over; try not to get anyone hurt.',
+        'Locked in with a {n} bye race in hand. Coast responsibly.'], 7), Math.round(bye) + '%');
     } else if (pp >= 99.5) {
-      el.append('Playoffs are locked; the ', b(Math.round(bye) + '%'), ' bye race decides whether Week 15 is a rest week or an extra chance to choke.');
+      emit(pk(['Playoffs are locked; the {n} bye race decides whether Week 15 is a rest week or an extra chance to choke.',
+        'In the dance either way \u2014 the only live question is the bye, sitting at {n}.'], 8), Math.round(bye) + '%');
     } else if (pp >= 50) {
-      el.append('Playoff odds sit at ', b(Math.round(pp) + '%'), ', which is the sim\u2019s way of saying \u201Cprobably fine \u2014 don\u2019t do anything weird.\u201D');
+      emit(pk(['Playoff odds sit at {n}, which is the sim\u2019s way of saying \u201Cprobably fine \u2014 don\u2019t do anything weird.\u201D',
+        'At {n} to make it, the plan is simple: win the normal amount and let the bottom half eat itself.'], 9), Math.round(pp) + '%');
     } else {
-      el.append('Playoff odds: ', b(Math.round(pp) + '%'), ' \u2014 mathematically alive, spiritually on the bubble.');
+      emit(pk(['Playoff odds: {n} \u2014 mathematically alive, spiritually on the bubble.',
+        '{n} playoff odds. Every week from here is an elimination game nobody is calling one yet.'], 10), Math.round(pp) + '%');
     }
     // 30-day value trend
     if (det.status === 'ok' && vv.status === 'ok' && vv.data) {
       let tr = 0;
       for (const pl of det.data) if (pl.team === team && vv.data[pl.pid]) tr += Number(vv.data[pl.pid][2]) || 0;
-      if (tr >= 1500) el.append(' Roster value is up ', b(fmt.int(tr)), ' over 30 days \u2014 somebody\u2019s been working the wire.');
-      else if (tr <= -1500) el.append(' Roster value is down ', b(fmt.int(Math.abs(tr))), ' over the last month, which the league chat has definitely noticed.');
+      if (tr >= 1500) emit(pk([' Roster value is up {n} over 30 days \u2014 somebody\u2019s been working the wire.',
+        ' Up {n} in roster value this month; the wire never sleeps and apparently neither does this team.'], 11), fmt.int(tr));
+      else if (tr <= -1500) emit(pk([' Roster value is down {n} over the last month, which the league chat has definitely noticed.',
+        ' Bleeding value: down {n} in 30 days while standing still, which is a choice.'], 12), fmt.int(Math.abs(tr)));
     }
   });
   const td = (txt, cls) => {
@@ -741,7 +766,8 @@ dash.calc('league-table', {
       const dv = document.createElement('div');
       dv.className = 'hq-tile'; dv.style.setProperty('--tile', color);
       const mk = (cls, txt) => { const e = document.createElement('span'); e.className = cls; e.textContent = txt; dv.append(e); };
-      mk('k', k); mk('v', num); mk('who', who); mk('s', s);
+      const vc = (color === 'var(--color-bad)' || color === 'var(--hq-qb)') ? 'vbad' : (color === 'var(--color-ok)' || color === 'var(--hq-gold)') ? 'vok' : '';
+      mk('k', k); mk('v' + (vc ? ' ' + vc : ''), num); mk('who', who); mk('s', s);
       el.append(dv);
     }
   });
@@ -1294,7 +1320,9 @@ dash.calc('league-table', {
       card.append(trh);
       const grid = document.createElement('div');
       grid.className = 'trg';
-      for (const side of t.sides) {
+      const tots9 = t.sides.map((sd9) => sd9.got.reduce((s9, a9) => s9 + (Number(a9.v) || 0), 0));
+      const wIdx = tots9.length === 2 && Math.abs(tots9[0] - tots9[1]) >= 400 ? (tots9[0] > tots9[1] ? 0 : 1) : -1;
+      t.sides.forEach((side, si9) => {
         const col = document.createElement('div');
         const tm = document.createElement('div');
         tm.className = 'tm';
@@ -1302,13 +1330,11 @@ dash.calc('league-table', {
         if (ai) tm.append(ai);
         tm.append(side.team + ' got');
         col.append(tm);
-        let tot = 0;
         for (const a of side.got) {
-          tot += Number(a.v) || 0;
           const asr = document.createElement('div');
           asr.className = 'as';
           const nm = document.createElement('span');
-          nm.textContent = a.player + ' ';
+          nm.append(pnameEl(a.player, null), ' ');
           nm.append(posBadge(a.pos));
           const vb = document.createElement('b');
           vb.textContent = fmt.int(a.v);
@@ -1317,19 +1343,22 @@ dash.calc('league-table', {
         }
         const totr = document.createElement('div');
         totr.className = 'as tot';
-        const tl2 = document.createElement('span'); tl2.textContent = 'total';
-        const tb2 = document.createElement('b'); tb2.textContent = fmt.int(tot);
+        const tl2 = document.createElement('span');
+        tl2.textContent = 'total';
+        const tb2 = document.createElement('b');
+        tb2.textContent = fmt.int(tots9[si9]);
+        if (wIdx >= 0) tb2.className = si9 === wIdx ? 'ok' : 'bad';
         totr.append(tl2, tb2);
         col.append(totr);
         grid.append(col);
-      }
+      });
       card.append(grid);
       if (t.note) {
         const nt = document.createElement('p');
         nt.className = 'trn';
         String(t.note).split('**').forEach((s, i) => {
           if (!s) return;
-          if (i % 2) { const bb = document.createElement('b'); bb.textContent = s; nt.append(bb); }
+          if (i % 2) { const bb = document.createElement('b'); bb.textContent = s; const s8 = s.trim(); if (/^\+[\d,.]/.test(s8)) bb.className = 'ok'; else if (/^-[\d,.]/.test(s8)) bb.className = 'bad'; nt.append(bb); }
           else nt.append(s);
         });
         card.append(nt);
@@ -1354,7 +1383,7 @@ dash.calc('league-table', {
       const ptsTd = document.createElement('td');
       ptsTd.className = 'r';
       const pb = document.createElement('b');
-      pb.textContent = r.pts;
+      pb.textContent = r.pts; pb.className = 'ok';
       ptsTd.append(pb);
       tr.append(ptsTd, td(fmt.int(r.v), 'r'));
       tb.append(tr);
@@ -1374,7 +1403,7 @@ dash.calc('league-table', {
       const li = document.createElement('li');
       String(s).split('**').forEach((t, i) => {
         if (!t) return;
-        if (i % 2) { const bb = document.createElement('b'); bb.textContent = t; li.append(bb); }
+        if (i % 2) { const bb = document.createElement('b'); bb.textContent = t; const t8 = t.trim(); if (/^\+[\d,.]/.test(t8)) bb.className = 'ok'; else if (/^-[\d,.]/.test(t8)) bb.className = 'bad'; li.append(bb); }
         else li.append(t);
       });
       el.append(li);
@@ -1416,7 +1445,8 @@ dash.calc('league-table', {
     const rows = filtered('roster-body', sorted('roster-body', base.sort((a, b) => Number(b.value) - Number(a.value))));
     for (const r of rows) {
       const tr = document.createElement('tr');
-      tr.append(tdNode(pnameEl(r.player, r.pid)), tdNode(posBadge(r.pos)), td(r.pos_rank == null ? '\u2014' : String(r.pos_rank), 'r'), td(fmt.int(r.value), 'r'), trend(r.trend_30d));
+      const rk9 = Number(r.pos_rank);
+      tr.append(tdNode(pnameEl(r.player, r.pid)), tdNode(posBadge(r.pos)), td(r.pos_rank == null ? '\u2014' : String(r.pos_rank), 'r' + (rk9 && rk9 <= 10 ? ' up' : rk9 >= 40 ? ' down' : '')), td(fmt.int(r.value), 'r'), trend(r.trend_30d));
       tb.append(tr);
     }
   });
@@ -1709,6 +1739,20 @@ dash.calc('league-table', {
       th.addEventListener('click', act);
       th.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act(); } });
     });
+  });
+  dash.onData(() => {
+    const od9 = dash.data('odds');
+    if (od9.status !== 'ok') return;
+    const r9 = (od9.data || []).find((x) => x.team === (window.viewTeam || 'adamyeet'));
+    if (!r9) return;
+    const paint = (sel, v9, hi, lo) => {
+      const e9 = document.querySelector(sel);
+      if (!e9) return;
+      e9.classList.toggle('vok', v9 >= hi);
+      e9.classList.toggle('vbad', v9 < lo);
+    };
+    paint('#tiles [data-field="bye_pct"]', Number(r9.bye_pct) || 0, 40, 5);
+    paint('#tiles [data-field="champ_pct"]', Number(r9.champ_pct) || 0, 25, 3);
   });
   // ---- player detail card ----
   const pnameEl = (name, pid) => {
