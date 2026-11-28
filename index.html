@@ -239,7 +239,16 @@ body{margin:0;padding:18px 14px 40px;background:var(--color-bg);color:var(--colo
 .hq-pcd .pclog .r{text-align:right}
 .hq-pcd .pclog td b{color:var(--color-fg)}
 .hq-pcd .dnp{opacity:.5}
-@media (max-width:480px){.hq-pcd .pchero .hs{width:70px}.hq-pcd .statcol{display:none}.hq-pcd .pcbio{gap:12px}}
+.hq-pcd .pclog{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.hq-pcd .pclog th{white-space:nowrap}
+.hq-pcd .fpt{cursor:pointer}
+.hq-pcd .fpt b{border-bottom:1px dotted color-mix(in srgb,var(--color-fg-muted) 55%,transparent)}
+.hq-pcd .fpt:hover b{border-bottom-color:var(--color-fg)}
+.hq-pcd .brk td{background:color-mix(in srgb,var(--color-fg) 3%,transparent)}
+.hq-pcd .brkt{width:auto;min-width:240px;margin:2px 0 4px auto}
+.hq-pcd .brkt td{border-bottom:0;padding:2px 10px;background:none}
+.hq-pcd .brkt .tot td{border-top:1px solid var(--color-border-line);color:var(--color-fg);font-weight:var(--cds-font-weight-medium)}
+@media (max-width:480px){.hq-pcd .pchero .hs{width:70px}.hq-pcd .pcbio{gap:12px}}
 </style>
 </head>
 <body>
@@ -1710,21 +1719,6 @@ dash.calc('league-table', {
   const pcEsc = (e) => { if (e.key === 'Escape') pcClose(); };
   const pcClose = () => { const ov = document.querySelector('.hq-pov'); if (ov) ov.remove(); document.removeEventListener('keydown', pcEsc); };
   const el2 = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
-  const pcStatLine = (pos, s) => {
-    const seg = [];
-    if (pos === 'QB') {
-      seg.push((s.pass_cmp || 0) + '/' + (s.pass_att || 0) + ', ' + (s.pass_yd || 0) + ' yd, ' + (s.pass_td || 0) + ' TD');
-      if (s.pass_int) seg.push(s.pass_int + ' INT');
-      if (s.rush_yd) seg.push(s.rush_yd + ' rush' + (s.rush_td ? ' +' + s.rush_td + ' TD' : ''));
-    } else if (pos === 'RB') {
-      seg.push((s.rush_att || 0) + ' car, ' + (s.rush_yd || 0) + ' yd' + (s.rush_td ? ', ' + s.rush_td + ' TD' : ''));
-      if (s.rec || s.rec_tgt) seg.push((s.rec || 0) + '-' + (s.rec_yd || 0) + ' rec' + (s.rec_td ? ' +' + s.rec_td + ' TD' : ''));
-    } else {
-      seg.push((s.rec || 0) + '/' + (s.rec_tgt || 0) + ' tgt, ' + (s.rec_yd || 0) + ' yd' + (s.rec_td ? ', ' + s.rec_td + ' TD' : ''));
-      if (s.rush_yd) seg.push(s.rush_yd + ' rush' + (s.rush_td ? ' +' + s.rush_td + ' TD' : ''));
-    }
-    return seg.join(' \u00b7 ');
-  };
   window.openPlayerCard = async (pid) => {
     pcClose();
     const det = dash.data('matchdetail');
@@ -1822,27 +1816,84 @@ dash.calc('league-table', {
     const sayTxt = say.map((t4) => t4.charAt(0).toUpperCase() + t4.slice(1)).join('. ') + '.';
     cd.append(el2('p', 'pcsay', sayTxt));
     const lw = el2('div', 'pclog');
+    const POSCOLS = {
+      QB: [['CMP', 'pass_cmp'], ['ATT', 'pass_att'], ['YD', 'pass_yd'], ['TD', 'pass_td'], ['INT', 'pass_int'], ['CAR', 'rush_att'], ['RU YD', 'rush_yd'], ['RU TD', 'rush_td']],
+      RB: [['CAR', 'rush_att'], ['YD', 'rush_yd'], ['TD', 'rush_td'], ['TGT', 'rec_tgt'], ['REC', 'rec'], ['RE YD', 'rec_yd'], ['RE TD', 'rec_td']],
+      WR: [['TGT', 'rec_tgt'], ['REC', 'rec'], ['YD', 'rec_yd'], ['TD', 'rec_td'], ['CAR', 'rush_att'], ['RU YD', 'rush_yd'], ['RU TD', 'rush_td']]
+    };
+    POSCOLS.TE = POSCOLS.WR;
+    let cols = POSCOLS[pos] || POSCOLS.WR;
+    cols = cols.filter((c5) => weeks.some((r4) => r4.s && Number(r4.s[c5[1]])));
+    const STATNAME = { pass_yd: 'Pass yds', pass_td: 'Pass TD', pass_int: 'Interception', pass_2pt: '2-pt pass', rush_yd: 'Rush yds', rush_td: 'Rush TD', rush_2pt: '2-pt rush', rec: 'Reception', rec_yd: 'Rec yds', rec_td: 'Rec TD', rec_2pt: '2-pt rec', fum_lost: 'Fumble lost', fum: 'Fumble' };
+    const prettyKey = (k) => STATNAME[k] || k.replace(/_/g, ' ');
+    let scoringP = null;
+    const getScoring = () => {
+      if (!scoringP) scoringP = pcFetch('https://api.sleeper.app/v1/league/' + ((window.DATA && window.DATA.leagueId) || '')).then((j2) => (j2 && j2.scoring_settings) || null);
+      return scoringP;
+    };
     const tbl3 = el2('table');
     const hr2 = el2('tr');
-    hr2.append(el2('th', null, 'WK'), el2('th', null, 'OPP'), el2('th', 'statcol', 'Stat line'), el2('th', 'r', 'SNP%'), el2('th', 'r', 'FPTS'));
+    hr2.append(el2('th', null, 'WK'), el2('th', null, 'OPP'));
+    for (const c5 of cols) hr2.append(el2('th', 'r', c5[0]));
+    hr2.append(el2('th', 'r', 'SNP%'), el2('th', 'r', 'FPTS'));
     tbl3.append(hr2);
     for (const row of weeks) {
       const tr3 = el2('tr');
       if (!row.act) {
         tr3.className = 'dnp';
-        tr3.append(el2('td', null, String(row.w)), el2('td', null, row.e ? ((row.e.is_away_team ? '@ ' : 'vs ') + (row.e.opponent || '')) : '\u2014'), el2('td', 'statcol', 'did not play'), el2('td', 'r', '\u2014'), el2('td', 'r', '\u2014'));
-      } else {
-        const s = row.s;
-        const snp = s.off_snp && s.tm_off_snp ? Math.round(100 * s.off_snp / s.tm_off_snp) + '%' : '\u2014';
-        tr3.append(el2('td', null, String(row.w)),
-          el2('td', null, (row.e.is_away_team ? '@ ' : 'vs ') + (row.e.opponent || '')),
-          el2('td', 'statcol', pcStatLine(pos, s)),
-          el2('td', 'r', snp));
-        const ftd = el2('td', 'r');
-        ftd.append(el2('b', null, (Number(s.pts_ppr) || 0).toFixed(2)));
-        tr3.append(ftd);
+        tr3.append(el2('td', null, String(row.w)), el2('td', null, row.e ? ((row.e.is_away_team ? '@ ' : 'vs ') + (row.e.opponent || '')) : '\u2014'));
+        const dtd = el2('td', 'dnpc', 'did not play');
+        dtd.colSpan = cols.length + 2;
+        tr3.append(dtd);
+        tbl3.append(tr3);
+        continue;
       }
+      const s = row.s;
+      const snp = s.off_snp && s.tm_off_snp ? Math.round(100 * s.off_snp / s.tm_off_snp) + '%' : '\u2014';
+      tr3.append(el2('td', null, String(row.w)), el2('td', null, (row.e.is_away_team ? '@ ' : 'vs ') + (row.e.opponent || '')));
+      for (const c5 of cols) tr3.append(el2('td', 'r', String(Number(s[c5[1]]) || 0)));
+      tr3.append(el2('td', 'r', snp));
+      const ftd = el2('td', 'r fpt');
+      ftd.title = 'Tap for the scoring math';
+      const fb2 = el2('b', null, (Number(s.pts_ppr) || 0).toFixed(2));
+      ftd.append(fb2);
+      tr3.append(ftd);
       tbl3.append(tr3);
+      let openRow = null;
+      ftd.addEventListener('click', async () => {
+        if (openRow) { openRow.remove(); openRow = null; return; }
+        const sc = await getScoring();
+        const br2 = el2('tr', 'brk');
+        const btd = el2('td');
+        btd.colSpan = cols.length + 4;
+        if (!sc) btd.textContent = 'Could not load league scoring settings.';
+        else {
+          const items = [];
+          let tot = 0;
+          for (const k in sc) {
+            const stv = Number(s[k]);
+            const wt = Number(sc[k]);
+            if (!stv || !wt) continue;
+            const p5 = stv * wt;
+            tot += p5;
+            items.push([prettyKey(k), stv, wt, p5]);
+          }
+          items.sort((a5, b5) => Math.abs(b5[3]) - Math.abs(a5[3]));
+          const bt = el2('table', 'brkt');
+          for (const it of items) {
+            const r5 = el2('tr');
+            r5.append(el2('td', null, it[0]), el2('td', 'r', it[1] + ' \u00d7 ' + (it[2] % 1 ? it[2].toFixed(2) : String(it[2]))), el2('td', 'r', (it[3] >= 0 ? '+' : '') + it[3].toFixed(2)));
+            bt.append(r5);
+          }
+          const rT = el2('tr', 'tot');
+          rT.append(el2('td', null, 'Total'), el2('td', null, ''), el2('td', 'r', tot.toFixed(2)));
+          bt.append(rT);
+          btd.append(bt);
+        }
+        br2.append(btd);
+        tr3.after(br2);
+        openRow = br2;
+      });
     }
     lw.append(tbl3);
     cd.append(lw);
